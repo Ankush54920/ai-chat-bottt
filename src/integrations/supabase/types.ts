@@ -16,27 +16,27 @@ export type Database = {
     Tables: {
       Conversation: {
         Row: {
-          ai_response: string | null
+          created_at: string | null
           id: number
+          message: string | null
           model_used: string | null
-          timestamp: string | null
-          user_message: string | null
+          response: string | null
           user_name: string
         }
         Insert: {
-          ai_response?: string | null
+          created_at?: string | null
           id?: number
+          message?: string | null
           model_used?: string | null
-          timestamp?: string | null
-          user_message?: string | null
+          response?: string | null
           user_name: string
         }
         Update: {
-          ai_response?: string | null
+          created_at?: string | null
           id?: number
+          message?: string | null
           model_used?: string | null
-          timestamp?: string | null
-          user_message?: string | null
+          response?: string | null
           user_name?: string
         }
         Relationships: []
