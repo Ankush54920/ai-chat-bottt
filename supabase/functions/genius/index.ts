@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error('Prompt is required');
     }
 
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    const apiKey = Deno.env.get('MYSTERIOUS_API_3');
     if (!apiKey) {
       throw new Error('API key not configured');
     }

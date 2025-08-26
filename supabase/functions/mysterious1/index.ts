@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error('Prompt is required');
     }
 
-    const apiKey = Deno.env.get('PERPLEXITY_API_1_KEY');
+    const apiKey = Deno.env.get('MYSTERIOUS_API_1');
     if (!apiKey) {
       throw new Error('API key not configured');
     }
@@ -34,7 +34,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
+        model: 'sonar-pro',
         messages: [
           { role: 'system', content: 'You are a helpful AI assistant. Be concise and informative.' },
           { role: 'user', content: prompt }
