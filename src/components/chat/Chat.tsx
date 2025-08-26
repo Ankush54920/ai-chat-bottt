@@ -2,22 +2,27 @@ import { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { UserNameDialog } from "./UserNameDialog";
+import { AISelector, AIModel } from "./AISelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
 
-interface Message {
-  id: number;
-  message: string;
-  response: string;
+interface Conversation {
+  id: string;
   user_name: string;
+  ai_used: string;
+  prompt: string;
+  reply: string;
+  inputtokencount: number;
+  outputtokencount: number;
+  totaltokencount: number;
   created_at: string;
-  model_used?: string;
 }
 
 export const Chat = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
+  const [selectedAI, setSelectedAI] = useState<AIModel>("Mysterious 1");
   const [isLoading, setIsLoading] = useState(false);
   const [showNameDialog, setShowNameDialog] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -29,7 +34,7 @@ export const Chat = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [conversations]);
 
   // Load existing conversations
   useEffect(() => {
@@ -41,12 +46,13 @@ export const Chat = () => {
   const loadConversations = async () => {
     try {
       const { data, error } = await supabase
-        .from('Conversation')
+        .from('conversations')
         .select('*')
+        .eq('user_name', userName)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      setConversations(data || []);
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast({
@@ -68,16 +74,20 @@ export const Chat = () => {
     setIsLoading(true);
     
     try {
-      // Call the chat API
-      const response = await fetch(`https://aqalfovzkykgabcgmtsb.supabase.co/functions/v1/chat-api`, {
+      // Determine which API endpoint to call
+      const apiEndpoint = selectedAI === "Mysterious 1" ? "mysterious1" 
+                        : selectedAI === "Mysterious 2" ? "mysterious2" 
+                        : "genius";
+
+      // Call the selected API
+      const response = await fetch(`https://aqalfovzkykgabcgmtsb.supabase.co/functions/v1/${apiEndpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxYWxmb3Z6a3lrZ2FiY2dtdHNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNzU4ODQsImV4cCI6MjA3MTY1MTg4NH0.uYt5exNw0novG7IfKd5PtwjlBtLyvQ3Kfd14dTafqro`,
         },
         body: JSON.stringify({
-          message: messageText,
-          userName: userName,
+          prompt: messageText,
         }),
       });
 
@@ -89,12 +99,15 @@ export const Chat = () => {
 
       // Save to database
       const { error: dbError } = await supabase
-        .from('Conversation')
+        .from('conversations')
         .insert({
           user_name: userName,
-          message: messageText,
-          response: data.response,
-          model_used: data.model,
+          ai_used: selectedAI,
+          prompt: messageText,
+          reply: data.reply,
+          inputtokencount: data.InputTokenCount,
+          outputtokencount: data.OutputTokenCount,
+          totaltokencount: data.totalTokenCount,
         });
 
       if (dbError) {
@@ -111,7 +124,7 @@ export const Chat = () => {
 
       toast({
         title: "Success",
-        description: `Response generated using ${data.model}`,
+        description: `Response generated using ${selectedAI}`,
       });
 
     } catch (error) {
@@ -126,33 +139,53 @@ export const Chat = () => {
     }
   };
 
-  const renderMessages = () => {
-    const messageElements: JSX.Element[] = [];
+  const renderConversations = () => {
+    const conversationElements: JSX.Element[] = [];
     
-    messages.forEach((msg) => {
+    conversations.forEach((conv) => {
       // Add user message
-      messageElements.push(
-        <ChatMessage
-          key={`user-${msg.id}`}
-          message={msg.message}
-          isUser={true}
-          userName={msg.user_name}
-          timestamp={new Date(msg.created_at)}
-        />
+      conversationElements.push(
+        <div key={`user-${conv.id}`} className="mb-4">
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-user/20 to-chat-user/10 border border-chat-user/30 text-chat-user-foreground ml-4">
+              <div className="text-xs font-medium opacity-70 text-chat-user mb-1">
+                {conv.user_name}
+              </div>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                {conv.prompt}
+              </div>
+              <div className="text-xs opacity-50 mt-1">
+                {new Date(conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          </div>
+        </div>
       );
       
-      // Add AI response
-      messageElements.push(
-        <ChatMessage
-          key={`ai-${msg.id}`}
-          message={msg.response}
-          isUser={false}
-          timestamp={new Date(msg.created_at)}
-        />
+      // Add AI response with token counts
+      conversationElements.push(
+        <div key={`ai-${conv.id}`} className="mb-4">
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 text-chat-ai-foreground mr-4">
+              <div className="text-xs font-medium opacity-70 text-chat-ai mb-1">
+                AI ({conv.ai_used})
+              </div>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap mb-2">
+                {conv.reply}
+              </div>
+              <div className="text-xs opacity-60 border-t border-chat-ai/20 pt-2">
+                Input: {conv.inputtokencount} | Output: {conv.outputtokencount} | Total: {conv.totaltokencount}
+              </div>
+              <div className="text-xs opacity-50 mt-1">
+                {new Date(conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          </div>
+        </div>
       );
     });
     
-    return messageElements;
+    return conversationElements;
   };
 
   return (
@@ -164,7 +197,7 @@ export const Chat = () => {
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
           <MessageCircle className="h-5 w-5 text-primary-foreground" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             AI Chat Assistant
           </h1>
@@ -174,11 +207,14 @@ export const Chat = () => {
             </p>
           )}
         </div>
+        {userName && (
+          <AISelector selectedAI={selectedAI} onSelectionChange={setSelectedAI} />
+        )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && !isLoading && (
+        {conversations.length === 0 && !isLoading && (
           <div className="text-center text-muted-foreground py-12">
             <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-lg mb-2">Start a conversation</p>
@@ -186,7 +222,7 @@ export const Chat = () => {
           </div>
         )}
         
-        {renderMessages()}
+        {renderConversations()}
         
         {isLoading && (
           <div className="flex justify-start">

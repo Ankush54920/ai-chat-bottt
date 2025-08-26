@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          ai_used: string
+          created_at: string | null
+          id: string
+          inputtokencount: number | null
+          outputtokencount: number | null
+          prompt: string
+          reply: string
+          totaltokencount: number | null
+          user_name: string
+        }
+        Insert: {
+          ai_used: string
+          created_at?: string | null
+          id?: string
+          inputtokencount?: number | null
+          outputtokencount?: number | null
+          prompt: string
+          reply: string
+          totaltokencount?: number | null
+          user_name: string
+        }
+        Update: {
+          ai_used?: string
+          created_at?: string | null
+          id?: string
+          inputtokencount?: number | null
+          outputtokencount?: number | null
+          prompt?: string
+          reply?: string
+          totaltokencount?: number | null
+          user_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
