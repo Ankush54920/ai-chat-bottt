@@ -1,24 +1,26 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export type AIModel = "Mysterious 1" | "Mysterious 2" | "Genius";
+export type AIMode = "Study Mode" | "Research Mode" | "Creative Mode" | "Fun Mode" | "Debate Mode";
 
 interface AISelectorProps {
-  selectedAI: AIModel;
-  onSelectionChange: (ai: AIModel) => void;
+  selectedMode: AIMode;
+  onSelectionChange: (mode: AIMode) => void;
 }
 
-export const AISelector = ({ selectedAI, onSelectionChange }: AISelectorProps) => {
+export const AISelector = ({ selectedMode, onSelectionChange }: AISelectorProps) => {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm font-medium text-muted-foreground">AI Model:</span>
-      <Select value={selectedAI} onValueChange={onSelectionChange}>
-        <SelectTrigger className="w-40 bg-card/50 border-border/30">
+      <span className="text-sm font-medium text-muted-foreground">Mode:</span>
+      <Select value={selectedMode} onValueChange={onSelectionChange}>
+        <SelectTrigger className="w-56 bg-card/80 backdrop-blur-sm border-border/50">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="bg-card border-border/30">
-          <SelectItem value="Mysterious 1">Mysterious 1</SelectItem>
-          <SelectItem value="Mysterious 2">Mysterious 2</SelectItem>
-          <SelectItem value="Genius">Genius</SelectItem>
+        <SelectContent className="bg-card/95 backdrop-blur-sm border-border/50 z-50">
+          <SelectItem value="Study Mode">📚 Study Mode (Tutor)</SelectItem>
+          <SelectItem value="Research Mode">🔍 Research Mode (Latest info)</SelectItem>
+          <SelectItem value="Creative Mode">🎨 Creative Mode (Brainstorming)</SelectItem>
+          <SelectItem value="Fun Mode">😄 Fun Mode (Friendly Chat)</SelectItem>
+          <SelectItem value="Debate Mode">⚖️ Debate Mode (Critical Thinking)</SelectItem>
         </SelectContent>
       </Select>
     </div>

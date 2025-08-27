@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { UserNameDialog } from "./UserNameDialog";
-import { AISelector, AIModel } from "./AISelector";
+import { AISelector, AIMode } from "./AISelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
@@ -22,7 +22,7 @@ interface Conversation {
 export const Chat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
-  const [selectedAI, setSelectedAI] = useState<AIModel>("Mysterious 1");
+  const [selectedMode, setSelectedMode] = useState<AIMode>("Study Mode");
   const [isLoading, setIsLoading] = useState(false);
   const [showNameDialog, setShowNameDialog] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,16 +68,34 @@ export const Chat = () => {
     setShowNameDialog(false);
   };
 
+  const getSystemPrompt = (mode: AIMode): string => {
+    const prompts = {
+      "Study Mode": "You are a highly knowledgeable tutor who explains step by step, in one complete response (not broken across multiple turns). Always explain concepts clearly with examples. Focus on accuracy and depth, avoiding unnecessary fluff.",
+      "Research Mode": "You are a world-class researcher with access to the latest web data. Provide factual, well-structured answers with references when possible. Avoid hallucinations, always prioritize reliability.",
+      "Creative Mode": "You are an imaginative creator who can brainstorm, generate ideas, and write with creativity. Be expressive, vivid, and flexible. Provide multiple ideas when possible.",
+      "Fun Mode": "You are a fun and friendly companion. Talk casually like a friend, with humor and empathy. Keep the conversation lighthearted and natural.",
+      "Debate Mode": "You are a sharp debater. When given a topic, analyze both sides with strong reasoning, evidence, and logical clarity. Stay objective but structured. End with a balanced conclusion or your strongest recommendation."
+    };
+    return prompts[mode];
+  };
+
+  const getAPIEndpoint = (mode: AIMode): string => {
+    // Study, Research, Debate → Perplexity (mysterious1 or mysterious2)
+    // Creative, Fun → Gemini (genius)
+    if (mode === "Study Mode" || mode === "Research Mode" || mode === "Debate Mode") {
+      return Math.random() > 0.5 ? "mysterious1" : "mysterious2"; // Randomly choose between the two Perplexity APIs
+    }
+    return "genius"; // Gemini for Creative and Fun modes
+  };
+
   const handleSendMessage = async (messageText: string) => {
     if (!userName) return;
 
     setIsLoading(true);
     
     try {
-      // Determine which API endpoint to call
-      const apiEndpoint = selectedAI === "Mysterious 1" ? "mysterious1" 
-                        : selectedAI === "Mysterious 2" ? "mysterious2" 
-                        : "genius";
+      const apiEndpoint = getAPIEndpoint(selectedMode);
+      const systemPrompt = getSystemPrompt(selectedMode);
 
       // Call the selected API
       const response = await fetch(`https://aqalfovzkykgabcgmtsb.supabase.co/functions/v1/${apiEndpoint}`, {
@@ -88,6 +106,8 @@ export const Chat = () => {
         },
         body: JSON.stringify({
           prompt: messageText,
+          systemPrompt: systemPrompt,
+          mode: selectedMode,
         }),
       });
 
@@ -102,7 +122,7 @@ export const Chat = () => {
         .from('conversations')
         .insert({
           user_name: userName,
-          ai_used: selectedAI,
+          ai_used: selectedMode,
           prompt: messageText,
           reply: data.reply,
           inputtokencount: data.InputTokenCount,
@@ -124,7 +144,7 @@ export const Chat = () => {
 
       toast({
         title: "Success",
-        description: `Response generated using ${selectedAI}`,
+        description: `Response generated using ${selectedMode}`,
       });
 
     } catch (error) {
@@ -208,7 +228,7 @@ export const Chat = () => {
           )}
         </div>
         {userName && (
-          <AISelector selectedAI={selectedAI} onSelectionChange={setSelectedAI} />
+          <AISelector selectedMode={selectedMode} onSelectionChange={setSelectedMode} />
         )}
       </div>
 

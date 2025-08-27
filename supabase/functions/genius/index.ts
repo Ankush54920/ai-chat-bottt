@@ -8,6 +8,8 @@ const corsHeaders = {
 
 interface RequestBody {
   prompt: string;
+  systemPrompt?: string;
+  mode?: string;
 }
 
 serve(async (req) => {
@@ -16,11 +18,14 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt }: RequestBody = await req.json();
+    const { prompt, systemPrompt, mode }: RequestBody = await req.json();
     
     if (!prompt) {
       throw new Error('Prompt is required');
     }
+
+    const defaultSystemPrompt = 'You are a helpful AI assistant. Be concise and informative.';
+    const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
 
     const apiKey = Deno.env.get('MYSTERIOUS_API_3');
     if (!apiKey) {
@@ -35,7 +40,7 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `You are a helpful AI assistant. Be concise and informative.\n\nUser: ${prompt}`
+            text: `${finalSystemPrompt}\n\nUser: ${prompt}`
           }]
         }]
       }),
