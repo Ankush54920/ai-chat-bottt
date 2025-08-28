@@ -73,7 +73,7 @@ export const Chat = () => {
       "Study Mode": "You are a highly knowledgeable tutor who explains step by step, in one complete response (not broken across multiple turns). Always explain concepts clearly with examples. Focus on accuracy and depth, avoiding unnecessary fluff.",
       "Research Mode": "You are a world-class researcher with access to the latest web data. Provide factual, well-structured answers with references when possible. Avoid hallucinations, always prioritize reliability.",
       "Creative Mode": "You are an imaginative creator who can brainstorm, generate ideas, and write with creativity. Be expressive, vivid, and flexible. Provide multiple ideas when possible.",
-      "Fun Mode": "You are a fun and friendly companion. Talk casually like a friend, with humor and empathy. Keep the conversation lighthearted and natural.",
+      "Fun Mode": "You are a chill friend. Keep answers generally short(2-4 Sentence ), but make them a little longer if needed. Always respond in the same language as the user input: - If English → reply in English. - If Hinglish → reply in Hinglish. - If another language → match that language too. Keep the tone casual, fun, and natural like a real buddy, not like a teacher. Make sure responses feel lightweight, not too long.",
       "Debate Mode": "You are a sharp debater. When given a topic, analyze both sides with strong reasoning, evidence, and logical clarity. Stay objective but structured. End with a balanced conclusion or your strongest recommendation."
     };
     return prompts[mode];
@@ -88,6 +88,25 @@ export const Chat = () => {
     return "genius"; // Gemini for Creative and Fun modes
   };
 
+  const getFunModeContext = (): string => {
+    if (selectedMode !== "Fun Mode") return "";
+    
+    // Get last 2-3 Fun Mode conversations for context
+    const funModeConvs = conversations
+      .filter(conv => conv.ai_used === "Fun Mode")
+      .slice(-3); // Last 3 conversations
+    
+    if (funModeConvs.length === 0) return "";
+    
+    let context = "Recent conversation context:\n";
+    funModeConvs.forEach(conv => {
+      context += `User: ${conv.prompt}\nYou: ${conv.reply}\n`;
+    });
+    context += "\nNow respond to the new message:";
+    
+    return context;
+  };
+
   const handleSendMessage = async (messageText: string) => {
     if (!userName) return;
 
@@ -96,6 +115,8 @@ export const Chat = () => {
     try {
       const apiEndpoint = getAPIEndpoint(selectedMode);
       const systemPrompt = getSystemPrompt(selectedMode);
+      const context = getFunModeContext();
+      const finalPrompt = context ? `${context}\n\n${messageText}` : messageText;
 
       // Call the selected API
       const response = await fetch(`https://aqalfovzkykgabcgmtsb.supabase.co/functions/v1/${apiEndpoint}`, {
@@ -105,7 +126,7 @@ export const Chat = () => {
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxYWxmb3Z6a3lrZ2FiY2dtdHNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNzU4ODQsImV4cCI6MjA3MTY1MTg4NH0.uYt5exNw0novG7IfKd5PtwjlBtLyvQ3Kfd14dTafqro`,
         },
         body: JSON.stringify({
-          prompt: messageText,
+          prompt: finalPrompt,
           systemPrompt: systemPrompt,
           mode: selectedMode,
         }),
