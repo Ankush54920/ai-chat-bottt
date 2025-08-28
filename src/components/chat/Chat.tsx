@@ -68,6 +68,11 @@ export const Chat = () => {
     setShowNameDialog(false);
   };
 
+  const handleInsertText = (text: string) => {
+    // This function is passed to ChatInput to handle quick action insertions
+    // The actual text insertion is handled by ChatInput's setMessage
+  };
+
   const getSystemPrompt = (mode: AIMode): string => {
     const prompts = {
       "Study Mode": "You are a highly knowledgeable tutor who explains step by step, in one complete response (not broken across multiple turns). Always explain concepts clearly with examples. Focus on accuracy and depth, avoiding unnecessary fluff.",
@@ -284,6 +289,8 @@ export const Chat = () => {
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
         disabled={!userName}
+        selectedMode={selectedMode}
+        onInsertText={handleInsertText}
       />
     </div>
   );
