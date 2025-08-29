@@ -177,7 +177,7 @@ export const Chat = () => {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send message",
+        description: "⚠️ Oops, something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
