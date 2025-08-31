@@ -373,29 +373,31 @@ export const Chat = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {conversations.length === 0 && !isLoading && (
-          <div className="text-center text-muted-foreground py-12">
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">Start a conversation</p>
-            <p className="text-sm">Ask me anything and I'll help you out!</p>
-          </div>
-        )}
-        
-        {renderConversations()}
-        
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 mr-4">
-              <div className="flex items-center gap-2 text-chat-ai-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Thinking...</span>
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+          {conversations.length === 0 && !isLoading && (
+            <div className="text-center text-muted-foreground py-12">
+              <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg mb-2">Start a conversation</p>
+              <p className="text-sm">Ask me anything and I'll help you out!</p>
+            </div>
+          )}
+          
+          {renderConversations()}
+          
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 mr-4">
+                <div className="flex items-center gap-2 text-chat-ai-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Thinking...</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input */}

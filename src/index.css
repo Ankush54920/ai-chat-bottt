@@ -56,6 +56,7 @@ All colors MUST be HSL.
     /* Animation timing */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-math: opacity 0.4s ease-out, transform 0.4s ease-out;
 
     --radius: 0.5rem;
 
@@ -122,5 +123,69 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Math rendering styles */
+  .katex {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+    transition: var(--transition-math);
+  }
+
+  .katex-display {
+    margin: 1rem 0 !important;
+    padding: 0.75rem !important;
+    background: hsl(var(--muted) / 0.3) !important;
+    border: 1px solid hsl(var(--border) / 0.5) !important;
+    border-radius: 0.5rem !important;
+    transform: translateY(0);
+    animation: math-fade-in 0.4s ease-out;
+  }
+
+  .katex-inline {
+    padding: 0.125rem 0.25rem !important;
+    background: hsl(var(--muted) / 0.2) !important;
+    border-radius: 0.25rem !important;
+    font-size: 0.9em !important;
+  }
+
+  @keyframes math-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Study mode step cards */
+  .study-step-card {
+    transition: var(--transition-smooth);
+    animation: step-fade-in 0.3s ease-out;
+  }
+
+  @keyframes step-fade-in {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Responsive math on mobile */
+  @media (max-width: 768px) {
+    .katex-display {
+      margin: 0.75rem 0 !important;
+      padding: 0.5rem !important;
+      font-size: 0.9em !important;
+    }
+    
+    .katex {
+      font-size: 0.85em !important;
+    }
   }
 }

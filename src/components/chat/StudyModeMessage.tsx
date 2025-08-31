@@ -27,19 +27,24 @@ export const StudyModeMessage = ({ message, timestamp }: StudyModeMessageProps) 
     let stepNumber = 0;
 
     const renderMathText = (text: string) => {
-      // First handle display math ($$...$$)
+      // Handle multiple math patterns: $$...$$ (display), \(...\) (inline), $...$ (inline)
       const displayMathPattern = /\$\$([^$]+)\$\$/g;
-      const inlineMathPattern = /\\\(([^)]+)\\\)/g;
+      const inlineMathPattern1 = /\\\(([^)]+)\\\)/g;
+      const inlineMathPattern2 = /(?<!\$)\$([^$\n]+)\$(?!\$)/g;
       
       let parts = [];
       let lastIndex = 0;
       
-      // Handle display math
+      // Handle display math first ($$...$$)
       text.replace(displayMathPattern, (match, mathContent, index) => {
         if (index > lastIndex) {
           parts.push(text.substring(lastIndex, index));
         }
-        parts.push(<BlockMath key={`display-${index}`} math={mathContent.trim()} />);
+        parts.push(
+          <div key={`display-${index}`} className="my-3">
+            <BlockMath math={mathContent.trim()} />
+          </div>
+        );
         lastIndex = index + match.length;
         return match;
       });
@@ -53,21 +58,45 @@ export const StudyModeMessage = ({ message, timestamp }: StudyModeMessageProps) 
         if (typeof part === 'string') {
           const inlineParts = [];
           let inlineLastIndex = 0;
+          let workingText = part;
           
-          part.replace(inlineMathPattern, (match, mathContent, index) => {
-            if (index > inlineLastIndex) {
-              inlineParts.push(part.substring(inlineLastIndex, index));
-            }
-            inlineParts.push(<InlineMath key={`inline-${partIndex}-${index}`} math={mathContent.trim()} />);
+          // Handle \(...\) inline math
+          workingText = workingText.replace(inlineMathPattern1, (match, mathContent, index) => {
+            const beforeText = workingText.substring(inlineLastIndex, index);
+            if (beforeText) inlineParts.push(beforeText);
+            
+            inlineParts.push(
+              <span key={`inline1-${partIndex}-${index}`} className="katex-inline">
+                <InlineMath math={mathContent.trim()} />
+              </span>
+            );
             inlineLastIndex = index + match.length;
+            return '';
+          });
+          
+          // Reset for $...$ pattern
+          let currentText = inlineLastIndex < part.length ? part.substring(inlineLastIndex) : '';
+          let finalParts = [];
+          let finalIndex = 0;
+          
+          currentText.replace(inlineMathPattern2, (match, mathContent, index) => {
+            if (index > finalIndex) {
+              finalParts.push(currentText.substring(finalIndex, index));
+            }
+            finalParts.push(
+              <span key={`inline2-${partIndex}-${index}`} className="katex-inline">
+                <InlineMath math={mathContent.trim()} />
+              </span>
+            );
+            finalIndex = index + match.length;
             return match;
           });
           
-          if (inlineLastIndex < part.length) {
-            inlineParts.push(part.substring(inlineLastIndex));
+          if (finalIndex < currentText.length) {
+            finalParts.push(currentText.substring(finalIndex));
           }
           
-          return inlineParts;
+          return [...inlineParts, ...finalParts].filter(p => p);
         }
         return part;
       }).flat();
@@ -77,16 +106,18 @@ export const StudyModeMessage = ({ message, timestamp }: StudyModeMessageProps) 
       if (content.length === 0) return;
       
       elements.push(
-        <div key={`step-${stepNum}`} className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border/50 rounded-xl p-4 mb-3">
+        <div key={`step-${stepNum}`} className="study-step-card bg-gradient-to-br from-muted/30 to-muted/10 border border-border/50 rounded-xl p-4 mb-3 transition-all duration-300 hover:border-primary/30 hover:shadow-md">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-              <BookOpen className="h-3 w-3 text-primary" />
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+              <span className="text-xs font-bold text-primary">{stepNum}</span>
             </div>
-            <h4 className="font-semibold text-sm text-foreground">Step {stepNum}</h4>
+            <h4 className="font-semibold text-sm text-foreground flex items-center gap-1">
+              📘 Step {stepNum}
+            </h4>
           </div>
-          <div className="space-y-2 text-sm leading-relaxed">
+          <div className="space-y-3 text-sm leading-relaxed pl-2">
             {content.map((line, idx) => (
-              <div key={idx} className="text-muted-foreground">
+              <div key={idx} className="text-muted-foreground break-words">
                 {renderMathText(line)}
               </div>
             ))}
@@ -116,7 +147,7 @@ export const StudyModeMessage = ({ message, timestamp }: StudyModeMessageProps) 
       } else if (trimmedLine && stepNumber === 0) {
         // Content before any steps - add as regular text
         elements.push(
-          <div key={`intro-${index}`} className="text-sm leading-relaxed mb-3 text-muted-foreground">
+          <div key={`intro-${index}`} className="text-sm leading-relaxed mb-3 text-muted-foreground p-3 bg-muted/10 rounded-lg border border-border/30 break-words">
             {renderMathText(trimmedLine)}
           </div>
         );
@@ -131,7 +162,7 @@ export const StudyModeMessage = ({ message, timestamp }: StudyModeMessageProps) 
     // If no steps were found, render the entire message as regular content
     if (elements.length === 0 && stepNumber === 0) {
       elements.push(
-        <div key="content" className="text-sm leading-relaxed text-muted-foreground">
+        <div key="content" className="text-sm leading-relaxed text-muted-foreground p-4 bg-muted/10 rounded-lg border border-border/30 break-words">
           {renderMathText(cleanMessage)}
         </div>
       );
@@ -142,12 +173,12 @@ export const StudyModeMessage = ({ message, timestamp }: StudyModeMessageProps) 
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 text-chat-ai-foreground mr-4">
+      <div className="max-w-[90%] sm:max-w-[85%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 text-chat-ai-foreground mr-4 transition-all duration-300">
         <div className="flex items-center gap-2 text-xs font-medium opacity-70 text-chat-ai mb-3">
           <ArrowRight className="h-3 w-3" />
           Study Mode Assistant
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3 overflow-hidden">
           {renderContent}
         </div>
         <div className="text-xs opacity-50 mt-3 pt-2 border-t border-chat-ai/20">
