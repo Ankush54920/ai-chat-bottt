@@ -19,9 +19,9 @@ export const ChatInput = ({ onSendMessage, isLoading, disabled, selectedMode, on
 
   const quickActions = {
     "Study Mode": [
-      "Explain step by step",
-      "Summarize the key points", 
-      "Give me practice questions"
+      "Solve step by step",
+      "Explain like I'm 10", 
+      "Give a quick summary"
     ],
     "Research Mode": [
       "Give me an overview",

@@ -6,6 +6,7 @@ import { AISelector, AIMode } from "./AISelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle, User, Brain, Smile, Heart, Gamepad2 } from "lucide-react";
+import { StudyModeMessage } from "./StudyModeMessage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ export const Chat = () => {
 
   const getSystemPrompt = (mode: AIMode): string => {
     const prompts = {
-      "Study Mode": "You are a highly knowledgeable tutor who explains step by step, in one complete response (not broken across multiple turns). Always explain concepts clearly with examples. Focus on accuracy and depth, avoiding unnecessary fluff.",
+      "Study Mode": "You are a step-by-step problem solver and teacher. If the user asks a maths, physics, or chemistry question: - Solve step-by-step with clear, concise explanations. - Render every equation using LaTeX format (\\( ... \\)) or $$ ... $$ for display math so they render correctly in the UI. - Separate each step into its own block or line for better readability. - Do NOT include external links, citations, or [numbers] like [1] anywhere in the answer. - If the question is conceptual, give a short, direct explanation with no fluff. - If asked for a summary, give a 1-2 line crisp explanation at the end.",
       "Research Mode": "You are a world-class researcher with access to the latest web data. Provide factual, well-structured answers with references when possible. Avoid hallucinations, always prioritize reliability.",
       "Creative Mode": "You are an imaginative creator who can brainstorm, generate ideas, and write with creativity. Be expressive, vivid, and flexible. Provide multiple ideas when possible.",
       "Fun Mode": `You are a ${getPersonalityPrompt(funPersonality)}. Keep answers generally short, but slightly longer if needed. Match the language user is using (English, Hinglish, or any other language they type in). Be playful, friendly, and fun, not overly formal.${funMemory.favoriteTopic ? ` They like ${funMemory.favoriteTopic}, so occasionally mention it naturally.` : ''}${funMemory.currentMood ? ` They seem ${funMemory.currentMood} lately.` : ''}`,
@@ -269,26 +270,44 @@ export const Chat = () => {
       );
       
       // Add AI response with token counts
-      conversationElements.push(
-        <div key={`ai-${conv.id}`} className="mb-4">
-          <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 text-chat-ai-foreground mr-4">
-              <div className="text-xs font-medium opacity-70 text-chat-ai mb-1">
-                AI ({conv.ai_used})
-              </div>
-              <div className="text-sm leading-relaxed whitespace-pre-wrap mb-2">
-                {conv.reply}
-              </div>
-              <div className="text-xs opacity-60 border-t border-chat-ai/20 pt-2">
-                Input: {conv.inputtokencount} | Output: {conv.outputtokencount} | Total: {conv.totaltokencount}
-              </div>
-              <div className="text-xs opacity-50 mt-1">
-                {new Date(conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      if (conv.ai_used === "Study Mode") {
+        conversationElements.push(
+          <div key={`ai-${conv.id}`} className="mb-4">
+            <StudyModeMessage 
+              message={conv.reply} 
+              timestamp={new Date(conv.created_at)}
+            />
+            <div className="flex justify-start mt-2">
+              <div className="max-w-[85%] mr-4">
+                <div className="text-xs opacity-60 bg-muted/30 rounded-lg px-3 py-1 border border-border/30">
+                  Input: {conv.inputtokencount} | Output: {conv.outputtokencount} | Total: {conv.totaltokencount}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      );
+        );
+      } else {
+        conversationElements.push(
+          <div key={`ai-${conv.id}`} className="mb-4">
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 text-chat-ai-foreground mr-4">
+                <div className="text-xs font-medium opacity-70 text-chat-ai mb-1">
+                  AI ({conv.ai_used})
+                </div>
+                <div className="text-sm leading-relaxed whitespace-pre-wrap mb-2">
+                  {conv.reply}
+                </div>
+                <div className="text-xs opacity-60 border-t border-chat-ai/20 pt-2">
+                  Input: {conv.inputtokencount} | Output: {conv.outputtokencount} | Total: {conv.totaltokencount}
+                </div>
+                <div className="text-xs opacity-50 mt-1">
+                  {new Date(conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
     });
     
     return conversationElements;
