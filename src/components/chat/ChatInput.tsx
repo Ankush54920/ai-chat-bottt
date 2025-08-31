@@ -11,9 +11,10 @@ interface ChatInputProps {
   disabled?: boolean;
   selectedMode: AIMode;
   onInsertText: (text: string) => void;
+  onMiniGameSelect?: (game: string) => void;
 }
 
-export const ChatInput = ({ onSendMessage, isLoading, disabled, selectedMode, onInsertText }: ChatInputProps) => {
+export const ChatInput = ({ onSendMessage, isLoading, disabled, selectedMode, onInsertText, onMiniGameSelect }: ChatInputProps) => {
   const [message, setMessage] = useState("");
 
   const quickActions = {
@@ -33,9 +34,11 @@ export const ChatInput = ({ onSendMessage, isLoading, disabled, selectedMode, on
       "Describe this like a movie scene"
     ],
     "Fun Mode": [
-      "Tell me a joke",
-      "Give me a fun fact", 
-      "Reply like a best friend"
+      "🎯 Tell me a joke",
+      "🧠 Ask me a riddle",
+      "🎲 Play a mini-game",
+      "💬 Compliment me",
+      "😜 Tell me a fun fact"
     ],
     "Debate Mode": [
       "Break this down logically",
@@ -60,16 +63,23 @@ export const ChatInput = ({ onSendMessage, isLoading, disabled, selectedMode, on
   };
 
   const handleQuickAction = (action: string) => {
-    setMessage(action);
-    onInsertText(action);
+    if (action === "🎲 Play a mini-game") {
+      onMiniGameSelect?.("");
+      return;
+    }
+    
+    // Clean up the action text (remove emojis for cleaner input)
+    const cleanAction = action.replace(/^[🎯🧠🎲💬😜]\s*/, "");
+    setMessage(cleanAction);
+    onInsertText(cleanAction);
   };
 
   return (
     <div className="bg-card/50 backdrop-blur-sm border-t border-border/50">
       {/* Quick Actions */}
       <div className="px-4 pt-3 pb-2">
-        <div className="flex gap-2 justify-center">
-          {quickActions[selectedMode]?.map((action, index) => (
+        <div className="flex gap-1 justify-center flex-wrap">
+          {quickActions[selectedMode]?.slice(0, selectedMode === "Fun Mode" ? 5 : 3).map((action, index) => (
             <Button
               key={index}
               variant="outline"
@@ -79,7 +89,8 @@ export const ChatInput = ({ onSendMessage, isLoading, disabled, selectedMode, on
               className={cn(
                 "text-xs bg-muted/30 border-border/40 hover:bg-muted/60",
                 "hover:border-primary/40 transition-all duration-200",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                selectedMode === "Fun Mode" && "text-[10px] px-2 py-1"
               )}
             >
               {action}

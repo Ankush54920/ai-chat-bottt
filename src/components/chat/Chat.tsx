@@ -5,7 +5,10 @@ import { UserNameDialog } from "./UserNameDialog";
 import { AISelector, AIMode } from "./AISelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle, User, Brain, Smile, Heart, Gamepad2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 interface Conversation {
   id: string;
@@ -19,12 +22,22 @@ interface Conversation {
   created_at: string;
 }
 
+type FunPersonality = "smart-nerd" | "funny-friend" | "chill-friend" | "supportive-mentor";
+
+interface FunMemory {
+  favoriteTopic?: string;
+  currentMood?: string;
+}
+
 export const Chat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<AIMode>("Study Mode");
   const [isLoading, setIsLoading] = useState(false);
   const [showNameDialog, setShowNameDialog] = useState(true);
+  const [funPersonality, setFunPersonality] = useState<FunPersonality>("chill-friend");
+  const [showMiniGameModal, setShowMiniGameModal] = useState(false);
+  const [funMemory, setFunMemory] = useState<FunMemory>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -35,6 +48,23 @@ export const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [conversations]);
+
+  // Load personality and memory from localStorage
+  useEffect(() => {
+    const savedPersonality = localStorage.getItem('funPersonality') as FunPersonality;
+    if (savedPersonality) {
+      setFunPersonality(savedPersonality);
+    }
+    
+    const savedMemory = localStorage.getItem('funMemory');
+    if (savedMemory) {
+      try {
+        setFunMemory(JSON.parse(savedMemory));
+      } catch (e) {
+        console.error('Error parsing fun memory:', e);
+      }
+    }
+  }, []);
 
   // Load existing conversations
   useEffect(() => {
@@ -73,12 +103,42 @@ export const Chat = () => {
     // The actual text insertion is handled by ChatInput's setMessage
   };
 
+  const handlePersonalityChange = (personality: FunPersonality) => {
+    setFunPersonality(personality);
+    localStorage.setItem('funPersonality', personality);
+  };
+
+  const handleMiniGameSelect = () => {
+    setShowMiniGameModal(true);
+  };
+
+  const selectMiniGame = (game: string) => {
+    setShowMiniGameModal(false);
+    const gamePrompts = {
+      "Trivia Mode": "Let's play trivia! Ask me one trivia question at a time and wait for my answer.",
+      "Would You Rather": "Let's play Would You Rather! Give me a fun would you rather question.",
+      "Guess the Emoji": "Let's play Guess the Emoji! Give me some emojis and I'll guess what they represent.",
+      "Riddles": "Let's play riddles! Ask me a fun riddle and wait for my answer."
+    };
+    handleSendMessage(gamePrompts[game as keyof typeof gamePrompts] || "Let's play a fun game!");
+  };
+
+  const getPersonalityPrompt = (personality: FunPersonality): string => {
+    const personalities = {
+      "smart-nerd": "🤓 Smart Nerd – You are witty & logical, give clever responses with fun facts. Be intellectually playful.",
+      "funny-friend": "😂 Funny Friend – You love memes, jokes, and sarcasm. Keep things entertaining and humorous.",
+      "chill-friend": "😎 Chill Friend – You're casual and laid-back, mixing Hinglish/English naturally with a friendly vibe.",
+      "supportive-mentor": "❤️ Supportive Mentor – You're motivational, comforting, and uplifting. Always encourage and inspire."
+    };
+    return personalities[personality];
+  };
+
   const getSystemPrompt = (mode: AIMode): string => {
     const prompts = {
       "Study Mode": "You are a highly knowledgeable tutor who explains step by step, in one complete response (not broken across multiple turns). Always explain concepts clearly with examples. Focus on accuracy and depth, avoiding unnecessary fluff.",
       "Research Mode": "You are a world-class researcher with access to the latest web data. Provide factual, well-structured answers with references when possible. Avoid hallucinations, always prioritize reliability.",
       "Creative Mode": "You are an imaginative creator who can brainstorm, generate ideas, and write with creativity. Be expressive, vivid, and flexible. Provide multiple ideas when possible.",
-      "Fun Mode": "You are a chill friend. Keep answers generally short(2-4 Sentence ), but make them a little longer if needed. Always respond in the same language as the user input: - If English → reply in English. - If Hinglish → reply in Hinglish. - If another language → match that language too. Keep the tone casual, fun, and natural like a real buddy, not like a teacher. Make sure responses feel lightweight, not too long.",
+      "Fun Mode": `You are a ${getPersonalityPrompt(funPersonality)}. Keep answers generally short, but slightly longer if needed. Match the language user is using (English, Hinglish, or any other language they type in). Be playful, friendly, and fun, not overly formal.${funMemory.favoriteTopic ? ` They like ${funMemory.favoriteTopic}, so occasionally mention it naturally.` : ''}${funMemory.currentMood ? ` They seem ${funMemory.currentMood} lately.` : ''}`,
       "Debate Mode": "You are a sharp debater. When given a topic, analyze both sides with strong reasoning, evidence, and logical clarity. Stay objective but structured. End with a balanced conclusion or your strongest recommendation."
     };
     return prompts[mode];
@@ -254,7 +314,42 @@ export const Chat = () => {
           )}
         </div>
         {userName && (
-          <AISelector selectedMode={selectedMode} onSelectionChange={setSelectedMode} />
+          <div className="flex items-center gap-2">
+            {selectedMode === "Fun Mode" && (
+              <Select value={funPersonality} onValueChange={handlePersonalityChange}>
+                <SelectTrigger className="w-[140px] h-8 text-xs bg-muted/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background border border-border shadow-lg">
+                  <SelectItem value="smart-nerd">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-3 w-3" />
+                      Smart Nerd
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="funny-friend">
+                    <div className="flex items-center gap-2">
+                      <Smile className="h-3 w-3" />
+                      Funny Friend
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="chill-friend">
+                    <div className="flex items-center gap-2">
+                      <User className="h-3 w-3" />
+                      Chill Friend
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="supportive-mentor">
+                    <div className="flex items-center gap-2">
+                      <Heart className="h-3 w-3" />
+                      Supportive Mentor
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <AISelector selectedMode={selectedMode} onSelectionChange={setSelectedMode} />
+          </div>
         )}
       </div>
 
@@ -291,7 +386,41 @@ export const Chat = () => {
         disabled={!userName}
         selectedMode={selectedMode}
         onInsertText={handleInsertText}
+        onMiniGameSelect={handleMiniGameSelect}
       />
+
+      {/* Mini Game Selection Modal */}
+      <Dialog open={showMiniGameModal} onOpenChange={setShowMiniGameModal}>
+        <DialogContent className="sm:max-w-md bg-background border border-border shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gamepad2 className="h-5 w-5 text-primary" />
+              Choose a Mini-Game
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-4">
+            {[
+              { name: "Trivia Mode", icon: "🧩", desc: "Test your knowledge" },
+              { name: "Would You Rather", icon: "🎲", desc: "Tough choices" },
+              { name: "Guess the Emoji", icon: "🕹", desc: "Decode the emojis" },
+              { name: "Riddles", icon: "🧠", desc: "Brain teasers" }
+            ].map((game) => (
+              <Button
+                key={game.name}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-muted/80 transition-colors"
+                onClick={() => selectMiniGame(game.name)}
+              >
+                <span className="text-2xl">{game.icon}</span>
+                <div className="text-center">
+                  <div className="font-medium text-sm">{game.name}</div>
+                  <div className="text-xs text-muted-foreground">{game.desc}</div>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
