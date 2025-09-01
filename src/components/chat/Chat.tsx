@@ -374,7 +374,14 @@ export const Chat = () => {
 
       {/* Messages */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+        <div 
+          className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4 scroll-smooth overscroll-contain"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'hsl(var(--muted)) transparent',
+            maxHeight: 'calc(100vh - 140px)' // Ensure proper height on mobile
+          }}
+        >
           {conversations.length === 0 && !isLoading && (
             <div className="text-center text-muted-foreground py-12">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -396,19 +403,23 @@ export const Chat = () => {
             </div>
           )}
           
+          {/* Add bottom padding to prevent overlap with fixed input */}
+          <div className="h-4" />
           <div ref={messagesEndRef} />
         </div>
       </div>
 
       {/* Input */}
-      <ChatInput
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-        disabled={!userName}
-        selectedMode={selectedMode}
-        onInsertText={handleInsertText}
-        onMiniGameSelect={handleMiniGameSelect}
-      />
+      <div className="border-t bg-background/95 backdrop-blur-sm sticky bottom-0 z-10">
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+          disabled={!userName}
+          selectedMode={selectedMode}
+          onInsertText={handleInsertText}
+          onMiniGameSelect={handleMiniGameSelect}
+        />
+      </div>
 
       {/* Mini Game Selection Modal */}
       <Dialog open={showMiniGameModal} onOpenChange={setShowMiniGameModal}>
