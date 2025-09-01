@@ -43,12 +43,14 @@ export const Chat = () => {
   const { toast } = useToast();
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [conversations]);
+    // Small delay to ensure DOM is updated before scrolling
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
+  }, [conversations, isLoading]);
 
   // Load personality and memory from localStorage
   useEffect(() => {
@@ -200,11 +202,27 @@ export const Chat = () => {
 
       const data = await response.json();
       
-      if (!response.ok) {
+      if (!response.ok || !data.reply) {
         throw new Error(data.error || 'Failed to get AI response');
       }
 
-      // Save to database
+      // Create a new conversation object for immediate display
+      const newConversation: Conversation = {
+        id: `temp-${Date.now()}`,
+        user_name: userName,
+        ai_used: selectedMode,
+        prompt: messageText,
+        reply: data.reply,
+        inputtokencount: data.InputTokenCount || 0,
+        outputtokencount: data.OutputTokenCount || 0,
+        totaltokencount: data.totalTokenCount || 0,
+        created_at: new Date().toISOString(),
+      };
+
+      // Add to conversations immediately for instant UI update
+      setConversations(prev => [...prev, newConversation]);
+
+      // Try to save to database
       const { error: dbError } = await supabase
         .from('conversations')
         .insert({
@@ -212,33 +230,28 @@ export const Chat = () => {
           ai_used: selectedMode,
           prompt: messageText,
           reply: data.reply,
-          inputtokencount: data.InputTokenCount,
-          outputtokencount: data.OutputTokenCount,
-          totaltokencount: data.totalTokenCount,
+          inputtokencount: data.InputTokenCount || 0,
+          outputtokencount: data.OutputTokenCount || 0,
+          totaltokencount: data.totalTokenCount || 0,
         });
 
       if (dbError) {
         console.error('Database error:', dbError);
         toast({
           title: "Warning",
-          description: "Message sent but not saved to history",
+          description: "Response received but not saved to history",
           variant: "destructive",
         });
+      } else {
+        // Only reload if database save was successful to get the proper ID
+        await loadConversations();
       }
-
-      // Reload conversations to show the new message
-      await loadConversations();
-
-      toast({
-        title: "Success",
-        description: `Response generated using ${selectedMode}`,
-      });
 
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
-        title: "Error",
-        description: "⚠️ Oops, something went wrong. Please try again.",
+        title: "Error", 
+        description: "Could not fetch response, please try again",
         variant: "destructive",
       });
     } finally {
@@ -375,11 +388,12 @@ export const Chat = () => {
       {/* Messages */}
       <div className="flex-1 flex flex-col min-h-0">
         <div 
-          className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4 scroll-smooth overscroll-contain"
+          className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-3 sm:space-y-4 scroll-smooth"
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: 'hsl(var(--muted)) transparent',
-            maxHeight: 'calc(100vh - 140px)' // Ensure proper height on mobile
+            maxHeight: 'calc(100vh - 140px)', // Ensure proper height on mobile
+            overscrollBehavior: 'contain' // Prevent infinite scroll
           }}
         >
           {conversations.length === 0 && !isLoading && (
@@ -403,9 +417,8 @@ export const Chat = () => {
             </div>
           )}
           
-          {/* Add bottom padding to prevent overlap with fixed input */}
-          <div className="h-4" />
-          <div ref={messagesEndRef} />
+          {/* Scroll anchor */}
+          <div ref={messagesEndRef} className="h-1" />
         </div>
       </div>
 
