@@ -202,7 +202,7 @@ export const Chat = () => {
 
       const data = await response.json();
       
-      if (!response.ok || !data.reply) {
+      if (!response.ok || !data.response) {
         throw new Error(data.error || 'Failed to get AI response');
       }
 
@@ -212,10 +212,10 @@ export const Chat = () => {
         user_name: userName,
         ai_used: selectedMode,
         prompt: messageText,
-        reply: data.reply,
-        inputtokencount: data.InputTokenCount || 0,
-        outputtokencount: data.OutputTokenCount || 0,
-        totaltokencount: data.totalTokenCount || 0,
+        reply: data.response, // Fixed: use 'response' instead of 'reply'
+        inputtokencount: 0, // Edge function doesn't return token counts
+        outputtokencount: 0,
+        totaltokencount: 0,
         created_at: new Date().toISOString(),
       };
 
@@ -229,10 +229,10 @@ export const Chat = () => {
           user_name: userName,
           ai_used: selectedMode,
           prompt: messageText,
-          reply: data.reply,
-          inputtokencount: data.InputTokenCount || 0,
-          outputtokencount: data.OutputTokenCount || 0,
-          totaltokencount: data.totalTokenCount || 0,
+          reply: data.response, // Fixed: use 'response' instead of 'reply'
+          inputtokencount: 0, // Edge function doesn't return token counts
+          outputtokencount: 0,
+          totaltokencount: 0,
         });
 
       if (dbError) {
