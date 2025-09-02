@@ -175,6 +175,61 @@ export const Chat = () => {
     return context;
   };
 
+  // Unified function to save conversation to database
+  const saveConversationToDatabase = async (conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<boolean> => {
+    try {
+      console.log('Saving conversation payload:', {
+        user_name: conversation.user_name,
+        ai_used: conversation.ai_used,
+        prompt: conversation.prompt,
+        reply: conversation.reply,
+        inputtokencount: conversation.inputtokencount,
+        outputtokencount: conversation.outputtokencount,
+        totaltokencount: conversation.totaltokencount,
+      });
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          user_name: conversation.user_name,
+          ai_used: conversation.ai_used,
+          prompt: conversation.prompt,
+          reply: conversation.reply,
+          inputtokencount: conversation.inputtokencount,
+          outputtokencount: conversation.outputtokencount,
+          totaltokencount: conversation.totaltokencount,
+        })
+        .select();
+
+      if (error) {
+        console.error('Database save error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        toast({
+          title: "Save Failed",
+          description: `Failed to save to history: ${error.message}`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('Successfully saved conversation:', data);
+      return true;
+    } catch (error) {
+      console.error('Unexpected error saving conversation:', error);
+      toast({
+        title: "Save Error",
+        description: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const handleSendMessage = async (messageText: string) => {
     if (!userName) return;
 
@@ -186,6 +241,8 @@ export const Chat = () => {
       const context = getFunModeContext();
       const finalPrompt = context ? `${context}\n\n${messageText}` : messageText;
 
+      console.log(`Calling ${apiEndpoint} for ${selectedMode} mode`);
+      
       // Call the selected API
       const response = await fetch(`https://aqalfovzkykgabcgmtsb.supabase.co/functions/v1/${apiEndpoint}`, {
         method: 'POST',
@@ -201,58 +258,49 @@ export const Chat = () => {
       });
 
       const data = await response.json();
+      console.log('API Response:', data);
       
       if (!response.ok || !data.reply) {
         throw new Error(data.error || 'Failed to get AI response');
       }
 
-      // Create a new conversation object for immediate display
-      const newConversation: Conversation = {
-        id: `temp-${Date.now()}`,
+      // Create conversation object with proper token count mapping
+      const conversationData = {
         user_name: userName,
         ai_used: selectedMode,
         prompt: messageText,
-        reply: data.reply, // Fixed: use 'reply' as returned by API
-        inputtokencount: data.InputTokenCount || 0, 
+        reply: data.reply,
+        inputtokencount: data.InputTokenCount || 0,
         outputtokencount: data.OutputTokenCount || 0,
         totaltokencount: data.totalTokenCount || 0,
+      };
+
+      // Create a new conversation object for immediate display
+      const newConversation: Conversation = {
+        ...conversationData,
+        id: `temp-${Date.now()}`,
         created_at: new Date().toISOString(),
       };
 
       // Add to conversations immediately for instant UI update
       setConversations(prev => [...prev, newConversation]);
 
-      // Try to save to database
-      const { error: dbError } = await supabase
-        .from('conversations')
-        .insert({
-          user_name: userName,
-          ai_used: selectedMode,
-          prompt: messageText,
-          reply: data.reply, // Fixed: use 'reply' as returned by API
-          inputtokencount: data.InputTokenCount || 0,
-          outputtokencount: data.OutputTokenCount || 0,
-          totaltokencount: data.totalTokenCount || 0,
-        });
-
-      if (dbError) {
-        console.error('Database error:', dbError);
-        toast({
-          title: "Warning",
-          description: "Response received but not saved to history",
-          variant: "destructive",
-        });
-        // Still keep the message in state even if DB save fails
-      } else {
+      // Try to save to database with proper error handling
+      const saveSuccess = await saveConversationToDatabase(conversationData);
+      
+      if (saveSuccess) {
         // Reload to get proper IDs and ensure sync
         await loadConversations();
+        console.log(`Successfully saved ${selectedMode} message to database`);
+      } else {
+        console.log(`Failed to save ${selectedMode} message to database, but keeping in UI`);
       }
 
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error", 
-        description: "Could not fetch response, please try again",
+        description: error instanceof Error ? error.message : "Could not fetch response, please try again",
         variant: "destructive",
       });
     } finally {
