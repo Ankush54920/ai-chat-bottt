@@ -242,8 +242,9 @@ export const Chat = () => {
           description: "Response received but not saved to history",
           variant: "destructive",
         });
+        // Still keep the message in state even if DB save fails
       } else {
-        // Only reload if database save was successful to get the proper ID
+        // Reload to get proper IDs and ensure sync
         await loadConversations();
       }
 
@@ -263,15 +264,18 @@ export const Chat = () => {
     const conversationElements: JSX.Element[] = [];
     
     conversations.forEach((conv) => {
+      // Ensure we have valid data
+      if (!conv.prompt || !conv.reply) return;
+      
       // Add user message
       conversationElements.push(
-        <div key={`user-${conv.id}`} className="mb-4">
+        <div key={`user-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
           <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-user/20 to-chat-user/10 border border-chat-user/30 text-chat-user-foreground ml-4">
+            <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-user/20 to-chat-user/10 border border-chat-user/30 text-chat-user-foreground ml-2 sm:ml-4 shadow-sm">
               <div className="text-xs font-medium opacity-70 text-chat-user mb-1">
                 {conv.user_name}
               </div>
-              <div className="text-sm leading-relaxed whitespace-pre-wrap">
+              <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {conv.prompt}
               </div>
               <div className="text-xs opacity-50 mt-1">
@@ -282,16 +286,16 @@ export const Chat = () => {
         </div>
       );
       
-      // Add AI response with token counts
+      // Add AI response - Special handling for Study Mode only
       if (conv.ai_used === "Study Mode") {
         conversationElements.push(
-          <div key={`ai-${conv.id}`} className="mb-4">
+          <div key={`ai-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
             <StudyModeMessage 
               message={conv.reply} 
               timestamp={new Date(conv.created_at)}
             />
             <div className="flex justify-start mt-2">
-              <div className="max-w-[85%] mr-4">
+              <div className="max-w-[85%] mr-2 sm:mr-4">
                 <div className="text-xs opacity-60 bg-muted/30 rounded-lg px-3 py-1 border border-border/30">
                   Input: {conv.inputtokencount} | Output: {conv.outputtokencount} | Total: {conv.totaltokencount}
                 </div>
@@ -300,17 +304,18 @@ export const Chat = () => {
           </div>
         );
       } else {
+        // All other modes (Fun Mode, Research Mode, etc.) use regular rendering
         conversationElements.push(
-          <div key={`ai-${conv.id}`} className="mb-4">
+          <div key={`ai-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 text-chat-ai-foreground mr-4">
+              <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 bg-gradient-to-br from-chat-ai/20 to-chat-ai/10 border border-chat-ai/30 text-chat-ai-foreground mr-2 sm:mr-4 shadow-sm">
                 <div className="text-xs font-medium opacity-70 text-chat-ai mb-1">
                   AI ({conv.ai_used})
                 </div>
-                <div className="text-sm leading-relaxed whitespace-pre-wrap mb-2">
+                <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                   {conv.reply}
                 </div>
-                <div className="text-xs opacity-60 border-t border-chat-ai/20 pt-2">
+                <div className="text-xs opacity-60 border-t border-chat-ai/20 pt-2 mt-2">
                   Input: {conv.inputtokencount} | Output: {conv.outputtokencount} | Total: {conv.totaltokencount}
                 </div>
                 <div className="text-xs opacity-50 mt-1">
@@ -392,8 +397,8 @@ export const Chat = () => {
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: 'hsl(var(--muted)) transparent',
-            maxHeight: 'calc(100vh - 140px)', // Ensure proper height on mobile
-            overscrollBehavior: 'contain' // Prevent infinite scroll
+            maxHeight: 'calc(100vh - 140px)',
+            overscrollBehavior: 'none'
           }}
         >
           {conversations.length === 0 && !isLoading && (
