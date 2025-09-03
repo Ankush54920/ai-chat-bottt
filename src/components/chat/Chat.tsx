@@ -5,11 +5,12 @@ import { UserNameDialog } from "./UserNameDialog";
 import { AISelector, AIMode } from "./AISelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MessageCircle, User, Brain, Smile, Heart, Gamepad2 } from "lucide-react";
+import { Loader2, MessageCircle, User, Brain, Smile, Heart, Gamepad2, LogOut } from "lucide-react";
 import { StudyModeMessage } from "./StudyModeMessage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { AuthScreen } from "@/components/auth/AuthScreen";
 
 interface Conversation {
   id: string;
@@ -33,9 +34,11 @@ interface FunMemory {
 export const Chat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedMode, setSelectedMode] = useState<AIMode>("Study Mode");
   const [isLoading, setIsLoading] = useState(false);
-  const [showNameDialog, setShowNameDialog] = useState(true);
+  const [showNameDialog, setShowNameDialog] = useState(false);
   const [funPersonality, setFunPersonality] = useState<FunPersonality>("chill-friend");
   const [showMiniGameModal, setShowMiniGameModal] = useState(false);
   const [funMemory, setFunMemory] = useState<FunMemory>({});
@@ -69,19 +72,33 @@ export const Chat = () => {
     }
   }, []);
 
-  // Load existing conversations
+  // Check for existing authentication
   useEffect(() => {
-    if (userName) {
+    const savedUserId = localStorage.getItem("userId");
+    const savedUserName = localStorage.getItem("userName");
+    
+    if (savedUserId && savedUserName) {
+      setUserId(savedUserId);
+      setUserName(savedUserName);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  // Load existing conversations when user is authenticated
+  useEffect(() => {
+    if (userId && isLoggedIn) {
       loadConversations();
     }
-  }, [userName]);
+  }, [userId, isLoggedIn]);
 
   const loadConversations = async () => {
+    if (!userId) return;
+    
     try {
       const { data, error } = await supabase
         .from('conversations')
         .select('*')
-        .eq('user_name', userName)
+        .eq('user_id', userId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -94,6 +111,23 @@ export const Chat = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleLogin = (newUserId: string, newUserName: string) => {
+    localStorage.setItem("userId", newUserId);
+    localStorage.setItem("userName", newUserName);
+    setUserId(newUserId);
+    setUserName(newUserName);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
+    setUserId(null);
+    setUserName(null);
+    setIsLoggedIn(false);
+    setConversations([]);
   };
 
   const handleNameSubmit = (name: string) => {
@@ -192,6 +226,7 @@ export const Chat = () => {
         .from('conversations')
         .insert({
           user_name: conversation.user_name,
+          user_id: userId,
           ai_used: conversation.ai_used,
           prompt: conversation.prompt,
           reply: conversation.reply,
@@ -231,7 +266,7 @@ export const Chat = () => {
   };
 
   const handleSendMessage = async (messageText: string) => {
-    if (!userName) return;
+    if (!userName || !userId) return;
 
     setIsLoading(true);
     
@@ -379,6 +414,10 @@ export const Chat = () => {
     return conversationElements;
   };
 
+  if (!isLoggedIn) {
+    return <AuthScreen onLogin={handleLogin} />;
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-background via-background to-background/80">
       <UserNameDialog open={showNameDialog} onSubmit={handleNameSubmit} />
@@ -400,6 +439,15 @@ export const Chat = () => {
         </div>
         {userName && (
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="h-8 px-3 text-xs"
+            >
+              <LogOut className="h-3 w-3 mr-1" />
+              Logout
+            </Button>
             {selectedMode === "Fun Mode" && (
               <Select value={funPersonality} onValueChange={handlePersonalityChange}>
                 <SelectTrigger className="w-[140px] h-8 text-xs bg-muted/50">

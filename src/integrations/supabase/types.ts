@@ -51,6 +51,7 @@ export type Database = {
           prompt: string
           reply: string
           totaltokencount: number | null
+          user_id: string | null
           user_name: string
         }
         Insert: {
@@ -62,6 +63,7 @@ export type Database = {
           prompt: string
           reply: string
           totaltokencount?: number | null
+          user_id?: string | null
           user_name: string
         }
         Update: {
@@ -73,7 +75,37 @@ export type Database = {
           prompt?: string
           reply?: string
           totaltokencount?: number | null
+          user_id?: string | null
           user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          id: string
+          password: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password?: string
+          username?: string
         }
         Relationships: []
       }
