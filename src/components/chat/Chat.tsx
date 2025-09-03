@@ -14,6 +14,7 @@ import { AuthScreen } from "@/components/auth/AuthScreen";
 
 interface Conversation {
   id: string;
+  user_id?: string;
   user_name: string;
   ai_used: string;
   prompt: string;
@@ -305,9 +306,9 @@ export const Chat = () => {
         ai_used: selectedMode,
         prompt: messageText,
         reply: data.reply,
-        inputtokencount: data.InputTokenCount || 0,
-        outputtokencount: data.OutputTokenCount || 0,
-        totaltokencount: data.totalTokenCount || 0,
+        inputtokencount: data.inputTokenCount || data.InputTokenCount || 0,
+        outputtokencount: data.outputTokenCount || data.OutputTokenCount || 0,
+        totaltokencount: data.totalTokenCount || data.TotalTokenCount || (data.inputTokenCount + data.outputTokenCount) || 0,
       };
 
       // Create a new conversation object for immediate display
