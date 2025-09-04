@@ -213,16 +213,16 @@ export const Chat = () => {
   // Unified function to save conversation to database
   const saveConversationToDatabase = async (conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<boolean> => {
     try {
-      // Prepare the insert payload with proper defaults
+      // Prepare the insert payload with proper defaults and ensure strings
       const insertPayload = {
-        user_name: conversation.user_name || "Anonymous",
+        user_name: String(conversation.user_name || "Anonymous"),
         user_id: userId || null,
-        ai_used: conversation.ai_used || "Unknown",
-        prompt: conversation.prompt || "",
-        reply: conversation.reply || "",
-        inputtokencount: conversation.inputtokencount || 0,
-        outputtokencount: conversation.outputtokencount || 0,
-        totaltokencount: conversation.totaltokencount || 0,
+        ai_used: String(conversation.ai_used || "Unknown"),
+        prompt: String(conversation.prompt || ""),
+        reply: String(conversation.reply || ""),
+        inputtokencount: Number(conversation.inputtokencount || 0),
+        outputtokencount: Number(conversation.outputtokencount || 0),
+        totaltokencount: Number(conversation.totaltokencount || 0),
       };
 
       console.log('Full payload before Supabase insert:', {

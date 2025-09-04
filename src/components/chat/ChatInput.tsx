@@ -70,8 +70,9 @@ export const ChatInput = ({ onSendMessage, isLoading, disabled, selectedMode, on
     
     // Clean up the action text (remove emojis for cleaner input)
     const cleanAction = action.replace(/^[🎯🧠🎲💬😜]\s*/, "");
-    setMessage(cleanAction);
-    onInsertText(cleanAction);
+    
+    // Automatically send the message instead of just setting it in the input
+    onSendMessage(cleanAction);
   };
 
   return (
