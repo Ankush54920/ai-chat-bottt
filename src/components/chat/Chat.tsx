@@ -225,11 +225,18 @@ export const Chat = () => {
         totaltokencount: conversation.totaltokencount || 0,
       };
 
-      console.log('Saving conversation payload:', insertPayload);
+      console.log('Full payload before Supabase insert:', {
+        user_id: insertPayload.user_id,
+        user_name: insertPayload.user_name,
+        message: insertPayload.reply,
+        mode: insertPayload.ai_used,
+        created_at: 'auto-generated',
+        payload: insertPayload
+      });
 
       const { data, error } = await supabase
         .from('conversations')
-        .insert(insertPayload)
+        .insert([insertPayload])  // Wrap in array as requested
         .select();
 
       if (error) {
@@ -291,16 +298,19 @@ export const Chat = () => {
       const data = await response.json();
       console.log('API Response:', data);
       
-      if (!response.ok || !data.reply) {
+      if (!response.ok || !data.response) {
         throw new Error(data.error || 'Failed to get AI response');
       }
 
+      // Ensure we have a valid response, especially for Fun Mode Gemini responses
+      const aiResponse = data.response || data.reply || "[No response received]";
+      
       // Create conversation object with proper token count mapping
       const conversationData = {
         user_name: userName,
         ai_used: selectedMode,
         prompt: messageText,
-        reply: data.reply,
+        reply: aiResponse,
         inputtokencount: Number(data.inputTokenCount || data.InputTokenCount || 0),
         outputtokencount: Number(data.outputTokenCount || data.OutputTokenCount || 0),
         totaltokencount: Number(data.totalTokenCount || data.TotalTokenCount || 0) || 
