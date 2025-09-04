@@ -298,11 +298,11 @@ export const Chat = () => {
       const data = await response.json();
       console.log('API Response:', data);
       
-      if (!response.ok || !data.response) {
+      if (!response.ok || (!data.response && !data.reply)) {
         throw new Error(data.error || 'Failed to get AI response');
       }
 
-      // Ensure we have a valid response, especially for Fun Mode Gemini responses
+      // Handle different response formats from different edge functions
       const aiResponse = data.response || data.reply || "[No response received]";
       
       // Create conversation object with proper token count mapping
