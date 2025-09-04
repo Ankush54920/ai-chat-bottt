@@ -213,28 +213,23 @@ export const Chat = () => {
   // Unified function to save conversation to database
   const saveConversationToDatabase = async (conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<boolean> => {
     try {
-      console.log('Saving conversation payload:', {
-        user_name: conversation.user_name,
-        ai_used: conversation.ai_used,
-        prompt: conversation.prompt,
-        reply: conversation.reply,
-        inputtokencount: conversation.inputtokencount,
-        outputtokencount: conversation.outputtokencount,
-        totaltokencount: conversation.totaltokencount,
-      });
+      // Prepare the insert payload with proper defaults
+      const insertPayload = {
+        user_name: conversation.user_name || "Anonymous",
+        user_id: userId || null,
+        ai_used: conversation.ai_used || "Unknown",
+        prompt: conversation.prompt || "",
+        reply: conversation.reply || "",
+        inputtokencount: conversation.inputtokencount || 0,
+        outputtokencount: conversation.outputtokencount || 0,
+        totaltokencount: conversation.totaltokencount || 0,
+      };
+
+      console.log('Saving conversation payload:', insertPayload);
 
       const { data, error } = await supabase
         .from('conversations')
-        .insert({
-          user_name: conversation.user_name,
-          user_id: userId,
-          ai_used: conversation.ai_used,
-          prompt: conversation.prompt,
-          reply: conversation.reply,
-          inputtokencount: conversation.inputtokencount,
-          outputtokencount: conversation.outputtokencount,
-          totaltokencount: conversation.totaltokencount,
-        })
+        .insert(insertPayload)
         .select();
 
       if (error) {
@@ -306,9 +301,10 @@ export const Chat = () => {
         ai_used: selectedMode,
         prompt: messageText,
         reply: data.reply,
-        inputtokencount: data.inputTokenCount || data.InputTokenCount || 0,
-        outputtokencount: data.outputTokenCount || data.OutputTokenCount || 0,
-        totaltokencount: data.totalTokenCount || data.TotalTokenCount || (data.inputTokenCount + data.outputTokenCount) || 0,
+        inputtokencount: Number(data.inputTokenCount || data.InputTokenCount || 0),
+        outputtokencount: Number(data.outputTokenCount || data.OutputTokenCount || 0),
+        totaltokencount: Number(data.totalTokenCount || data.TotalTokenCount || 0) || 
+                        (Number(data.inputTokenCount || data.InputTokenCount || 0) + Number(data.outputTokenCount || data.OutputTokenCount || 0)) || 0,
       };
 
       // Create a new conversation object for immediate display
