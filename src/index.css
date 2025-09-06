@@ -159,41 +159,70 @@ All colors MUST be HSL.
     }
   }
 
-  /* Study mode step cards */
+  /* Study mode step cards - Enhanced */
   .study-step-card {
     transition: var(--transition-smooth);
-    animation: step-fade-in 0.3s ease-out;
+    animation: step-fade-in 0.4s ease-out;
   }
 
   @keyframes step-fade-in {
     from {
       opacity: 0;
-      transform: translateX(-8px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;
-      transform: translateX(0);
+      transform: translateY(0);
     }
   }
+  
+  /* Enhanced KaTeX styling for mobile */
+  .katex-inline {
+    font-size: 0.95em;
+    line-height: 1.4;
+  }
 
-  /* Responsive math on mobile */
+  /* Responsive math on mobile - Enhanced */
   @media (max-width: 768px) {
     .katex-display {
       margin: 0.75rem 0 !important;
       padding: 0.5rem !important;
-      font-size: 0.9em !important;
+      font-size: 0.85em !important;
       overflow-x: auto !important;
       overflow-y: visible !important;
     }
     
     .katex {
-      font-size: 0.85em !important;
+      font-size: 0.8em !important;
+    }
+    
+    .katex-html {
+      overflow-x: auto;
+      padding-bottom: 2px;
     }
 
-    /* Better mobile scrolling */
+    /* Better mobile step cards */
     .study-step-card {
       margin-left: 0.25rem;
       margin-right: 0.25rem;
+      padding: 0.75rem !important;
+    }
+  }
+  
+  /* Extra small mobile devices */
+  @media (max-width: 480px) {
+    .katex-display {
+      font-size: 0.75em !important;
+      margin: 0.5rem 0 !important;
+    }
+    
+    .katex {
+      font-size: 0.7em !important;
+    }
+    
+    .study-step-card {
+      margin: 0.5rem 0.125rem;
+      padding: 0.5rem !important;
     }
   }
 

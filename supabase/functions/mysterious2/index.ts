@@ -12,6 +12,66 @@ interface RequestBody {
   mode?: string;
 }
 
+// Postprocessor for Study Mode responses
+function postprocessStudyModeResponse(text: string): string {
+  let cleaned = text;
+  
+  // Step 1: Fix double-escaped backslashes for LaTeX
+  cleaned = cleaned
+    .replace(/\\\\frac/g, '\\frac')
+    .replace(/\\\\sqrt/g, '\\sqrt')
+    .replace(/\\\\left/g, '\\left')
+    .replace(/\\\\right/g, '\\right')
+    .replace(/\\\\sum/g, '\\sum')
+    .replace(/\\\\int/g, '\\int')
+    .replace(/\\\\lim/g, '\\lim')
+    .replace(/\\\\alpha/g, '\\alpha')
+    .replace(/\\\\beta/g, '\\beta')
+    .replace(/\\\\gamma/g, '\\gamma')
+    .replace(/\\\\delta/g, '\\delta')
+    .replace(/\\\\theta/g, '\\theta')
+    .replace(/\\\\pi/g, '\\pi')
+    .replace(/\\\\([\w]+)/g, '\\$1'); // General fix for other escaped commands
+  
+  // Step 2: Remove citation markers and source footers
+  cleaned = cleaned
+    .replace(/\[\d+\]/g, '') // Remove [1], [2], etc.
+    .replace(/\[[\w\s,.-]+\]/g, '') // Remove [source name] etc.
+    .replace(/Source[s]?:\s*.*$/gm, '') // Remove "Source:" lines
+    .replace(/References?:\s*.*$/gm, '') // Remove "Reference:" lines
+    .replace(/\*\*Sources?\*\*[\s\S]*$/gm, '') // Remove **Sources** sections
+    .replace(/---[\s\S]*Sources?[\s\S]*$/gm, ''); // Remove footer sections
+  
+  // Step 3: Clean up markdown noise while preserving intentional formatting
+  cleaned = cleaned
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Convert **bold** to HTML
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>') // Convert __bold__ to HTML
+    .replace(/\*([^*\n]+)\*/g, '<em>$1</em>') // Convert *italic* to HTML (single line only)
+    .replace(/_([^_\n]+)_/g, '<em>$1</em>'); // Convert _italic_ to HTML (single line only)
+  
+  // Step 4: Auto-detect and wrap LaTeX expressions
+  cleaned = cleaned
+    .replace(/([^$\\]|^)(sqrt\(([^)]+)\))/g, '$1$\\sqrt{$3}$') // sqrt(x) -> $\sqrt{x}$
+    .replace(/([^$\\]|^)(\w+\/\w+)(?!\w)/g, '$1$\\frac{$2}$') // a/b -> $\frac{a}{b}$ (basic cases)
+    .replace(/([^$\\]|^)(\d+\s*\^\s*\d+)/g, '$1$$2$') // x^2 -> $x^2$
+    .replace(/([^$\\]|^)(≤|≥|±|∞|∑|∫|∂|∇|π|θ|α|β|γ|δ|ε|σ|μ|λ)/g, '$1$$2$'); // Wrap math symbols
+  
+  // Step 5: Normalize whitespace and paragraphs
+  cleaned = cleaned
+    .replace(/\n\n+/g, '\n\n') // Normalize multiple newlines
+    .replace(/\s+/g, ' ') // Normalize spaces (but keep newlines)
+    .replace(/ \n/g, '\n') // Remove spaces before newlines
+    .trim();
+  
+  // Step 6: If no clear steps detected, add paragraph breaks for readability
+  if (!cleaned.match(/Step\s+\d+/i) && cleaned.length > 200) {
+    // Add breaks after sentences that end periods/colons if the next sentence starts a new thought
+    cleaned = cleaned.replace(/([.:])\s+([A-Z][a-z])/g, '$1\n\n$2');
+  }
+  
+  return cleaned;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -56,7 +116,12 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || 'No response received';
+    let reply = data.choices?.[0]?.message?.content || 'No response received';
+    
+    // Apply Study Mode postprocessing
+    if (mode === 'Study Mode') {
+      reply = postprocessStudyModeResponse(reply);
+    }
     
     // Extract token counts from usage data
     const usage = data.usage || {};
