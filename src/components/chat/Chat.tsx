@@ -268,12 +268,24 @@ export const Chat = () => {
     }
   };
 
+  // Function to clean emojis and special characters for database storage
+  const cleanTextForDatabase = (text: string): string => {
+    // Remove emojis and special unicode characters that might cause JSON issues
+    return text
+      .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+      .replace(/^\s+|\s+$/g, '') // Trim whitespace
+      .replace(/\s+/g, ' '); // Normalize multiple spaces
+  };
+
   const handleSendMessage = async (messageText: string) => {
     if (!userName || !userId) return;
 
     setIsLoading(true);
     
     try {
+      // Clean the message text for database storage (remove emojis)
+      const cleanedMessageText = cleanTextForDatabase(messageText);
+      
       const apiEndpoint = getAPIEndpoint(selectedMode);
       const systemPrompt = getSystemPrompt(selectedMode);
       const context = getFunModeContext();
@@ -305,11 +317,11 @@ export const Chat = () => {
       // Handle different response formats from different edge functions
       const aiResponse = data.response || data.reply || "[No response received]";
       
-      // Create conversation object with proper token count mapping
+      // Create conversation object with cleaned text for database storage
       const conversationData = {
         user_name: userName,
         ai_used: selectedMode,
-        prompt: messageText,
+        prompt: cleanedMessageText, // Use cleaned text for database
         reply: aiResponse,
         inputtokencount: Number(data.inputTokenCount || data.InputTokenCount || 0),
         outputtokencount: Number(data.outputTokenCount || data.OutputTokenCount || 0),
@@ -317,9 +329,10 @@ export const Chat = () => {
                         (Number(data.inputTokenCount || data.InputTokenCount || 0) + Number(data.outputTokenCount || data.OutputTokenCount || 0)) || 0,
       };
 
-      // Create a new conversation object for immediate display
+      // Create a new conversation object for immediate display (use original text for UI)
       const newConversation: Conversation = {
         ...conversationData,
+        prompt: messageText, // Use original text with emojis for display
         id: `temp-${Date.now()}`,
         created_at: new Date().toISOString(),
       };
