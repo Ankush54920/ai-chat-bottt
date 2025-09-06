@@ -213,30 +213,38 @@ export const Chat = () => {
   // Unified function to save conversation to database
   const saveConversationToDatabase = async (conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<boolean> => {
     try {
-      // Prepare the insert payload with proper defaults and ensure strings
+      // Ensure all text fields are properly cleaned and stringified
+      const cleanedPrompt = cleanTextForDatabase(String(conversation.prompt || ""));
+      const cleanedReply = cleanTextForDatabase(String(conversation.reply || ""));
+      const cleanedUserName = cleanTextForDatabase(String(conversation.user_name || "Anonymous"));
+      const cleanedAiUsed = cleanTextForDatabase(String(conversation.ai_used || "Unknown"));
+
+      // Prepare the insert payload with thoroughly cleaned data
       const insertPayload = {
-        user_name: String(conversation.user_name || "Anonymous"),
+        user_name: cleanedUserName,
         user_id: userId || null,
-        ai_used: String(conversation.ai_used || "Unknown"),
-        prompt: String(conversation.prompt || ""),
-        reply: String(conversation.reply || ""),
+        ai_used: cleanedAiUsed,
+        prompt: cleanedPrompt,
+        reply: cleanedReply,
         inputtokencount: Number(conversation.inputtokencount || 0),
         outputtokencount: Number(conversation.outputtokencount || 0),
         totaltokencount: Number(conversation.totaltokencount || 0),
       };
 
-      console.log('Full payload before Supabase insert:', {
+      console.log('Clean payload before Supabase insert:', {
         user_id: insertPayload.user_id,
         user_name: insertPayload.user_name,
-        message: insertPayload.reply,
-        mode: insertPayload.ai_used,
-        created_at: 'auto-generated',
-        payload: insertPayload
+        ai_used: insertPayload.ai_used,
+        prompt: insertPayload.prompt.substring(0, 50) + '...',
+        reply: insertPayload.reply.substring(0, 50) + '...',
+        inputtokencount: insertPayload.inputtokencount,
+        outputtokencount: insertPayload.outputtokencount,
+        totaltokencount: insertPayload.totaltokencount,
       });
 
       const { data, error } = await supabase
         .from('conversations')
-        .insert([insertPayload])  // Wrap in array as requested
+        .insert(insertPayload)  // Single object, not array
         .select();
 
       if (error) {
@@ -244,7 +252,12 @@ export const Chat = () => {
           message: error.message,
           details: error.details,
           hint: error.hint,
-          code: error.code
+          code: error.code,
+          payload_preview: {
+            prompt_length: insertPayload.prompt.length,
+            reply_length: insertPayload.reply.length,
+            user_name_length: insertPayload.user_name.length,
+          }
         });
         
         toast({
@@ -271,10 +284,24 @@ export const Chat = () => {
   // Function to clean emojis and special characters for database storage
   const cleanTextForDatabase = (text: string): string => {
     // Remove emojis and special unicode characters that might cause JSON issues
-    return text
+    const cleaned = text
       .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
       .replace(/^\s+|\s+$/g, '') // Trim whitespace
-      .replace(/\s+/g, ' '); // Normalize multiple spaces
+      .replace(/\s+/g, ' ') // Normalize multiple spaces
+      .replace(/[^\x00-\x7F]/g, '') // Remove any non-ASCII characters that might cause issues
+      .replace(/[\\"']/g, ''); // Remove quotes that might break JSON
+    
+    return cleaned || text; // Fallback to original if cleaning results in empty string
+  };
+
+  // Function to create a proper message structure for storage
+  const createMessageStructure = (messageText: string, role: 'user' | 'assistant' = 'user') => {
+    const cleanedText = cleanTextForDatabase(messageText);
+    return {
+      role,
+      content: cleanedText,
+      timestamp: new Date().toISOString()
+    };
   };
 
   const handleSendMessage = async (messageText: string) => {
