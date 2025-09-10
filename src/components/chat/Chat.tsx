@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle, User, Brain, Smile, Heart, Gamepad2, LogOut } from "lucide-react";
 import { StudyModeMessage } from "./StudyModeMessage";
 import { EnhancedMessageRenderer } from "./EnhancedMessageRenderer";
+import { ImprovedMessageRenderer } from "./ImprovedMessageRenderer";
+import { EnhancedStudyRenderer } from "./EnhancedStudyRenderer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -421,7 +423,7 @@ export const Chat = () => {
       if (["Study Mode", "Debate Mode", "Research Mode", "Brainstorming Mode"].includes(conv.ai_used)) {
         conversationElements.push(
           <div key={`ai-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
-            <EnhancedMessageRenderer 
+            <EnhancedStudyRenderer 
               message={conv.reply} 
               timestamp={new Date(conv.created_at)}
               mode={conv.ai_used}
