@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle, User, Brain, Smile, Heart, Gamepad2, LogOut } from "lucide-react";
 import { StudyModeMessage } from "./StudyModeMessage";
+import { EnhancedMessageRenderer } from "./EnhancedMessageRenderer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -416,13 +417,14 @@ export const Chat = () => {
         </div>
       );
       
-      // Add AI response - Special handling for Study Mode only
-      if (conv.ai_used === "Study Mode") {
+      // Add AI response - Enhanced rendering for Study, Debate, Research, and Brainstorming modes
+      if (["Study Mode", "Debate Mode", "Research Mode", "Brainstorming Mode"].includes(conv.ai_used)) {
         conversationElements.push(
           <div key={`ai-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
-            <StudyModeMessage 
+            <EnhancedMessageRenderer 
               message={conv.reply} 
               timestamp={new Date(conv.created_at)}
+              mode={conv.ai_used}
             />
             <div className="flex justify-start mt-2">
               <div className="max-w-[85%] mr-2 sm:mr-4">
@@ -434,7 +436,7 @@ export const Chat = () => {
           </div>
         );
       } else {
-        // All other modes (Fun Mode, Research Mode, etc.) use regular rendering
+        // All other modes (Fun Mode, etc.) use regular rendering
         conversationElements.push(
           <div key={`ai-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
             <div className="flex justify-start">

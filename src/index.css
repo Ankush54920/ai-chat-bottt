@@ -258,4 +258,40 @@ All colors MUST be HSL.
     overflow-wrap: break-word;
     hyphens: auto;
   }
+
+  /* Enhanced message rendering styles */
+  .katex-inline {
+    display: inline;
+  }
+
+  .katex-display {
+    margin: 1rem 0;
+    text-align: center;
+  }
+
+  /* Improved mobile responsiveness for enhanced messages */
+  @media (max-width: 640px) {
+    .katex {
+      font-size: 0.9em !important;
+    }
+    
+    .katex-display {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Better scrolling behavior for chat */
+  .chat-container {
+    scroll-behavior: smooth;
+    overflow-anchor: auto;
+  }
+
+  /* Prevent content from scrolling too far */
+  .messages-container {
+    min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 }
