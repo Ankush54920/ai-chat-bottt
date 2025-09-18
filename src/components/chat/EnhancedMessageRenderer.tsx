@@ -1,8 +1,11 @@
 import { useMemo } from "react";
-import { InlineMath, BlockMath } from 'react-katex';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { BookOpen, MessageSquare, Search, Lightbulb, ArrowRight } from "lucide-react";
+import { BookOpen, MessageSquare, Search, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { cleanModelOutput } from "@/lib/textProcessor";
 
 interface EnhancedMessageRendererProps {
   message: string;
@@ -32,130 +35,55 @@ export const EnhancedMessageRenderer = ({ message, timestamp, mode }: EnhancedMe
 
   // Enhanced message cleaning and processing
   const processedMessage = useMemo(() => {
-    let cleaned = message;
-    
-    // Step 1: Remove citations and source references
-    cleaned = cleaned
-      .replace(/\[\d+\]/g, '') // Remove [1], [2], etc.
-      .replace(/\[[\w\s,.-]+\]/g, '') // Remove [source name] etc.
-      .replace(/Source[s]?:\s*.*$/gm, '') // Remove source lines
-      .replace(/References?:\s*.*$/gm, '') // Remove reference lines
-      .replace(/\*\*Sources?\*\*[\s\S]*$/gm, '') // Remove **Sources** sections
-      .replace(/---[\s\S]*Sources?[\s\S]*$/gm, ''); // Remove footer sections
-    
-    // Step 2: Fix LaTeX formatting
-    cleaned = cleaned
-      .replace(/\\\\([a-zA-Z]+)/g, '\\$1') // Fix double backslashes
-      .replace(/\$\$([^$]+)\$\$/g, (match, content) => {
-        const cleanContent = content.trim();
-        return `$$${cleanContent}$$`;
-      })
-      .replace(/\$([^$\n]+)\$/g, (match, content) => {
-        const cleanContent = content.trim();
-        return `$${cleanContent}$`;
-      });
-    
-    // Step 3: Auto-detect and wrap common math patterns
-    cleaned = cleaned
-      .replace(/(?<![\$\\])(\d+)\s*\^\s*(\{[^}]+\}|\w+)(?![^\$]*\$)/g, '$$$1^{$2}$$')
-      .replace(/(?<![\$\\])(\d+)\s*_\s*(\{[^}]+\}|\w+)(?![^\$]*\$)/g, '$$$1_{$2}$$')
-      .replace(/(?<![\$\\])(sqrt|sin|cos|tan|log|ln)\s*\(/g, '$$\\$1(')
-      .replace(/(?<![\$\\])([A-Za-z])\s*=\s*([^.\n]+)(?=\.|\n|$)/g, '$$1 = $2$$');
-    
-    // Step 4: Clean up whitespace and add paragraph breaks
-    cleaned = cleaned
-      .replace(/\s+/g, ' ')
-      .replace(/\n\s+/g, '\n')
-      .trim();
-    
-    // Step 5: Add paragraph breaks for better readability
-    if (!cleaned.match(/Step\s+\d+/i) && cleaned.length > 200) {
-      cleaned = cleaned.replace(/([.:])\s+([A-Z][a-z])/g, '$1\n\n$2');
-    }
-    
-    return cleaned;
+    return cleanModelOutput(message);
   }, [message]);
 
-  // Render math text with KaTeX
-  const renderMathText = (text: string) => {
-    const displayMathPattern = /\$\$([^$]+?)\$\$/g;
-    const inlineMathPattern = /(?<!\$)\$([^$\n]+?)\$(?!\$)/g;
-    
-    let parts = [];
-    let lastIndex = 0;
-    
-    // Handle display math ($$...$$)
-    text.replace(displayMathPattern, (match, mathContent, index) => {
-      if (index > lastIndex) {
-        parts.push(text.substring(lastIndex, index));
-      }
-      
-      try {
-        const cleanMathContent = mathContent.trim();
-        parts.push(
-          <div key={`display-${index}`} className="my-4 overflow-x-auto">
-            <div className="flex justify-center min-w-0">
-              <div className="max-w-full overflow-x-auto">
-                <BlockMath math={cleanMathContent} />
-              </div>
-            </div>
-          </div>
-        );
-      } catch (error) {
-        console.warn('LaTeX parsing error:', error, 'Content:', mathContent);
-        parts.push(
-          <div key={`display-error-${index}`} className="my-2 text-center font-mono text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400">
-            {mathContent.trim()}
-          </div>
-        );
-      }
-      
-      lastIndex = index + match.length;
-      return match;
-    });
-    
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-    
-    // Handle inline math in remaining text parts
-    return parts.map((part, partIndex) => {
-      if (typeof part === 'string') {
-        const inlineParts = [];
-        let inlineLastIndex = 0;
-        
-        part.replace(inlineMathPattern, (match, mathContent, index) => {
-          if (index > inlineLastIndex) {
-            inlineParts.push(part.substring(inlineLastIndex, index));
-          }
-          
-          try {
-            inlineParts.push(
-              <span key={`inline-${partIndex}-${index}`} className="katex-inline">
-                <InlineMath math={mathContent.trim()} />
-              </span>
-            );
-          } catch (error) {
-            console.warn('Inline LaTeX parsing error:', error, 'Content:', mathContent);
-            inlineParts.push(
-              <span key={`inline-error-${partIndex}-${index}`} className="font-mono text-sm bg-yellow-50 dark:bg-yellow-900/20 px-1 rounded">
-                {mathContent.trim()}
-              </span>
-            );
-          }
-          
-          inlineLastIndex = index + match.length;
-          return match;
-        });
-        
-        if (inlineLastIndex < part.length) {
-          inlineParts.push(part.substring(inlineLastIndex));
-        }
-        
-        return inlineParts.length > 1 ? inlineParts : part;
-      }
-      return part;
-    }).flat();
+  // Render markdown with math support
+  const renderMarkdown = (content: string) => {
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          p: ({ children }) => (
+            <p className="mb-3 leading-relaxed text-sm sm:text-base text-muted-foreground">
+              {children}
+            </p>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-semibold text-foreground">{children}</strong>
+          ),
+          em: ({ children }) => (
+            <em className="italic text-foreground/90">{children}</em>
+          ),
+          code: ({ children }) => (
+            <code className="bg-muted/50 px-1.5 py-0.5 rounded text-sm font-mono">
+              {children}
+            </code>
+          ),
+          pre: ({ children }) => (
+            <pre className="bg-muted/30 p-3 rounded-lg overflow-x-auto my-3 border border-border/30">
+              {children}
+            </pre>
+          ),
+          ul: ({ children }) => (
+            <ul className="list-disc list-inside mb-3 space-y-1 text-sm sm:text-base text-muted-foreground">
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="list-decimal list-inside mb-3 space-y-1 text-sm sm:text-base text-muted-foreground">
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => (
+            <li className="leading-relaxed">{children}</li>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    );
   };
 
   // Parse content into structured sections
@@ -169,7 +97,7 @@ export const EnhancedMessageRenderer = ({ message, timestamp, mode }: EnhancedMe
       if (content.length === 0) return;
       
       const hasTitle = title || stepNum;
-      const hasMath = content.some(line => /\$|\\\w+|\^|_|√|∛|∜|∑|∫|∞|±|≤|≥|≠|≈|∆|∂|∇|∈|∉|⊂|⊃|∪|∩/i.test(line));
+      const contentText = content.join('\n\n');
       
       elements.push(
         <div key={`content-${stepNum || elements.length}`} className={cn(
@@ -191,23 +119,8 @@ export const EnhancedMessageRenderer = ({ message, timestamp, mode }: EnhancedMe
               </h4>
             </div>
           )}
-          <div className="space-y-3">
-            {content.map((line, idx) => {
-              const lineHasMath = /\$|\\\w+|\^|_|√|∛|∜|∑|∫|∞|±|≤|≥|≠|≈|∆|∂|∇|∈|∉|⊂|⊃|∪|∩/i.test(line);
-              
-              return (
-                <div key={idx} className={cn(
-                  "break-words leading-relaxed text-sm sm:text-base",
-                  lineHasMath 
-                    ? "bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/20 p-3 rounded-lg shadow-sm font-mono" 
-                    : "text-muted-foreground py-1"
-                )}>
-                  <div className="overflow-x-auto min-w-0">
-                    {renderMathText(line)}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="prose prose-sm max-w-none">
+            {renderMarkdown(contentText)}
           </div>
         </div>
       );
