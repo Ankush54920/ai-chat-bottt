@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { saveStudyMemory, formatStudyContext, saveFunItem, isDuplicateFunItem, generateFunItemId, type FunItem } from "@/lib/memoryUtils";
+import { cleanModelOutput } from "@/lib/textProcessor";
 
 interface Conversation {
   id: string;
