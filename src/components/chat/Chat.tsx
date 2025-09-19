@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { AuthScreen } from "@/components/auth/AuthScreen";
-import { saveStudyMemory, formatStudyContext, saveFunItem, isDuplicateFunItem, generateFunItemId, type FunItem } from "@/lib/memoryUtils";
 
 interface Conversation {
   id: string;
@@ -174,15 +173,9 @@ export const Chat = () => {
   };
 
   const getSystemPrompt = (mode: AIMode): string => {
-    // Add study context for Study/Research modes
-    let contextPrefix = '';
-    if ((mode === "Study Mode" || mode === "Research Mode") && userName) {
-      contextPrefix = formatStudyContext(userName);
-    }
-
     const prompts = {
-      "Study Mode": contextPrefix + "You are a step-by-step problem solver and teacher. If the user asks a maths, physics, or chemistry question: - Solve step-by-step with clear, concise explanations. - Render every equation using LaTeX format (\\( ... \\)) or $$ ... $$ for display math so they render correctly in the UI. - Separate each step into its own block or line for better readability. - Do NOT include external links, citations, or [numbers] like [1] anywhere in the answer. - If the question is conceptual, give a short, direct explanation with no fluff. - If asked for a summary, give a 1-2 line crisp explanation at the end.",
-      "Research Mode": contextPrefix + "You are a world-class researcher with access to the latest web data. Provide factual, well-structured answers with references when possible. Avoid hallucinations, always prioritize reliability.",
+      "Study Mode": "You are a step-by-step problem solver and teacher. If the user asks a maths, physics, or chemistry question: - Solve step-by-step with clear, concise explanations. - Render every equation using LaTeX format (\\( ... \\)) or $$ ... $$ for display math so they render correctly in the UI. - Separate each step into its own block or line for better readability. - Do NOT include external links, citations, or [numbers] like [1] anywhere in the answer. - If the question is conceptual, give a short, direct explanation with no fluff. - If asked for a summary, give a 1-2 line crisp explanation at the end.",
+      "Research Mode": "You are a world-class researcher with access to the latest web data. Provide factual, well-structured answers with references when possible. Avoid hallucinations, always prioritize reliability.",
       "Creative Mode": "You are an imaginative creator who can brainstorm, generate ideas, and write with creativity. Be expressive, vivid, and flexible. Provide multiple ideas when possible.",
       "Fun Mode": `You are a ${getPersonalityPrompt(funPersonality)}. Keep answers generally short, but slightly longer if needed. Match the language user is using (English, Hinglish, or any other language they type in). Be playful, friendly, and fun, not overly formal.${funMemory.favoriteTopic ? ` They like ${funMemory.favoriteTopic}, so occasionally mention it naturally.` : ''}${funMemory.currentMood ? ` They seem ${funMemory.currentMood} lately.` : ''}`,
       "Debate Mode": "You are a sharp debater. When given a topic, analyze both sides with strong reasoning, evidence, and logical clarity. Stay objective but structured. End with a balanced conclusion or your strongest recommendation."
@@ -351,27 +344,6 @@ export const Chat = () => {
 
       // Handle different response formats from different edge functions
       const aiResponse = data.response || data.reply || "[No response received]";
-      
-      // Save study memory for Study/Research modes
-      if ((selectedMode === "Study Mode" || selectedMode === "Research Mode") && userName) {
-        saveStudyMemory(userName, messageText, aiResponse, selectedMode);
-      }
-
-      // Save Fun Mode items for de-duplication
-      if (selectedMode === "Fun Mode" && userName) {
-        const funType = messageText.toLowerCase().includes('joke') ? 'joke' :
-                       messageText.toLowerCase().includes('riddle') ? 'riddle' :
-                       messageText.toLowerCase().includes('fact') ? 'fact' : 'compliment';
-        
-        const funItem: FunItem = {
-          id: generateFunItemId(aiResponse, funType),
-          content: aiResponse,
-          type: funType,
-          timestamp: Date.now()
-        };
-        
-        saveFunItem(userName, funItem);
-      }
       
       // Create conversation object with cleaned text for database storage
       const conversationData = {
