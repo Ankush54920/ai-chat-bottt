@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle, User, Brain, Smile, Heart, Gamepad2, LogOut } from "lucide-react";
 import { StudyModeMessage } from "./StudyModeMessage";
 import { EnhancedMessageRenderer } from "./EnhancedMessageRenderer";
+import { FunModeMessage } from "./FunModeMessage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -178,7 +179,22 @@ export const Chat = () => {
       "Study Mode": "You are a step-by-step problem solver and teacher. If the user asks a maths, physics, or chemistry question: - Solve step-by-step with clear, concise explanations. - Render every equation using LaTeX format (\\( ... \\)) or $$ ... $$ for display math so they render correctly in the UI. - Separate each step into its own block or line for better readability. - Do NOT include external links, citations, or [numbers] like [1] anywhere in the answer. - If the question is conceptual, give a short, direct explanation with no fluff. - If asked for a summary, give a 1-2 line crisp explanation at the end.",
       "Research Mode": "You are a world-class researcher with access to the latest web data. Provide factual, well-structured answers with references when possible. Avoid hallucinations, always prioritize reliability.",
       "Creative Mode": "You are an imaginative creator who can brainstorm, generate ideas, and write with creativity. Be expressive, vivid, and flexible. Provide multiple ideas when possible.",
-      "Fun Mode": `You are a ${getPersonalityPrompt(funPersonality)}. Keep answers generally short, but slightly longer if needed. Match the language user is using (English, Hinglish, or any other language they type in). Be playful, friendly, and fun, not overly formal.${funMemory.favoriteTopic ? ` They like ${funMemory.favoriteTopic}, so occasionally mention it naturally.` : ''}${funMemory.currentMood ? ` They seem ${funMemory.currentMood} lately.` : ''}`,
+      "Fun Mode": `You are a ${getPersonalityPrompt(funPersonality)}. 
+
+FORMATTING RULES:
+- Use emojis liberally (⚡😂✨🧩💡🎯) to make responses fun and engaging
+- Start with a fun greeting or intro (e.g., "Okay bhai 😎!", "Chal sunao! 🎉", "Arre wah! ✨")
+- For multiple items (jokes, riddles, facts): format as numbered list with emojis, e.g.:
+  1. 😂 [First joke]
+  2. 😂 [Second joke]
+- Add spacing between items for readability
+- End with encouragement or playful closer (e.g., "Dimaag lagao! 🧠", "😂 Bata answer!", "Bas! Kitne solve hue? 🤯")
+- Match user's language (English, Hinglish, or whatever they use)
+- Vary your intros - don't be robotic!
+- Keep responses fun and scrollable on mobile
+
+${funMemory.favoriteTopic ? `They like ${funMemory.favoriteTopic}, so mention it naturally sometimes.` : ''}
+${funMemory.currentMood ? `They seem ${funMemory.currentMood} lately.` : ''}`,
       "Debate Mode": "You are a sharp debater. When given a topic, analyze both sides with strong reasoning, evidence, and logical clarity. Stay objective but structured. End with a balanced conclusion or your strongest recommendation."
     };
     return prompts[mode];
@@ -476,8 +492,25 @@ export const Chat = () => {
             </div>
           </div>
         );
+      } else if (conv.ai_used === "Fun Mode") {
+        // Fun Mode gets special rendering with emojis and markdown
+        conversationElements.push(
+          <div key={`ai-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
+            <FunModeMessage 
+              message={conv.reply} 
+              timestamp={new Date(conv.created_at)}
+            />
+            <div className="flex justify-start mt-2">
+              <div className="max-w-[85%] mr-2 sm:mr-4">
+                <div className="text-xs opacity-60 bg-muted/30 rounded-lg px-3 py-1 border border-border/30">
+                  Input: {conv.inputtokencount} | Output: {conv.outputtokencount} | Total: {conv.totaltokencount}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       } else {
-        // All other modes (Fun Mode, etc.) use regular rendering
+        // Other modes use regular rendering
         conversationElements.push(
           <div key={`ai-${conv.id}`} className="mb-4 animate-in slide-in-from-bottom-2 duration-300">
             <div className="flex justify-start">

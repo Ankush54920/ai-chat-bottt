@@ -7,7 +7,7 @@
  * @param raw - Raw text from AI model
  * @returns Cleaned Markdown string safe for react-markdown + rehype-katex
  */
-export const cleanModelOutput = (raw: string): string => {
+export const cleanModelOutput = (raw: string, preserveEmojis: boolean = false): string => {
   if (!raw) return '';
 
   let cleaned = raw;

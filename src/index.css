@@ -170,6 +170,28 @@ All colors MUST be HSL.
     @apply my-6 border-border;
   }
 
+  /* Fun Mode specific styling */
+  .fun-mode-content {
+    @apply text-foreground;
+  }
+
+  .fun-mode-content p {
+    @apply leading-relaxed;
+  }
+
+  .fun-mode-content ol,
+  .fun-mode-content ul {
+    @apply my-3 space-y-2;
+  }
+
+  .fun-mode-content li {
+    @apply leading-relaxed;
+  }
+
+  .fun-mode-content strong {
+    @apply text-accent font-semibold;
+  }
+
   /* Math rendering styles */
   .katex {
     font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;

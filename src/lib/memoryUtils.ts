@@ -17,7 +17,7 @@ export interface FunModeItem {
 const STUDY_MEMORY_KEY = 'study_memory';
 const FUN_MEMORY_KEY = 'fun_mode_recent';
 const MAX_STUDY_MEMORY = 2;
-const MAX_FUN_MEMORY = 10;
+const MAX_FUN_MEMORY = 5; // Track last 5 items to prevent repetition
 
 /**
  * Save a study/research interaction to memory
