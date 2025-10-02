@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { AuthScreen } from "@/components/auth/AuthScreen";
+import { saveStudyMemory, formatStudyMemoryContext, saveFunModeItem, isDuplicateFunResponse } from "@/lib/memoryUtils";
 
 interface Conversation {
   id: string;
@@ -316,7 +317,15 @@ export const Chat = () => {
       
       const apiEndpoint = getAPIEndpoint(selectedMode);
       const systemPrompt = getSystemPrompt(selectedMode);
-      const context = getFunModeContext();
+      
+      // Add memory context for Study/Research modes
+      let memoryContext = '';
+      if (selectedMode === "Study Mode" || selectedMode === "Research Mode") {
+        memoryContext = formatStudyMemoryContext(userId);
+      }
+      
+      const funContext = getFunModeContext();
+      const context = memoryContext || funContext;
       const finalPrompt = context ? `${context}\n\n${messageText}` : messageText;
 
       console.log(`Calling ${apiEndpoint} for ${selectedMode} mode`);
@@ -343,7 +352,39 @@ export const Chat = () => {
       }
 
       // Handle different response formats from different edge functions
-      const aiResponse = data.response || data.reply || "[No response received]";
+      let aiResponse = data.response || data.reply || "[No response received]";
+      
+      // Check for duplicate in Fun Mode
+      if (selectedMode === "Fun Mode") {
+        let attempts = 0;
+        while (isDuplicateFunResponse(userId, aiResponse) && attempts < 2) {
+          console.log('Duplicate fun response detected, regenerating...');
+          // Regenerate by calling API again with instruction to avoid repetition
+          const retryResponse = await fetch(`https://aqalfovzkykgabcgmtsb.supabase.co/functions/v1/${apiEndpoint}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxYWxmb3Z6a3lrZ2FiY2dtdHNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNzU4ODQsImV4cCI6MjA3MTY1MTg4NH0.uYt5exNw0novG7IfKd5PtwjlBtLyvQ3Kfd14dTafqro`,
+            },
+            body: JSON.stringify({
+              prompt: `${finalPrompt}\n\nIMPORTANT: Give a completely different response than before.`,
+              systemPrompt: systemPrompt,
+              mode: selectedMode,
+            }),
+          });
+          const retryData = await retryResponse.json();
+          aiResponse = retryData.response || retryData.reply || aiResponse;
+          attempts++;
+        }
+        
+        // Save to fun mode memory
+        saveFunModeItem(userId, 'response', aiResponse);
+      }
+      
+      // Save to study/research memory
+      if (selectedMode === "Study Mode" || selectedMode === "Research Mode") {
+        saveStudyMemory(userId, messageText, aiResponse);
+      }
       
       // Create conversation object with cleaned text for database storage
       const conversationData = {

@@ -1,8 +1,12 @@
 import { useMemo } from "react";
-import { InlineMath, BlockMath } from 'react-katex';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { BookOpen, MessageSquare, Search, Lightbulb, ArrowRight } from "lucide-react";
+import { BookOpen, MessageSquare, Search, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { cleanModelOutput, extractSteps, containsMath } from "@/lib/textProcessor";
 
 interface EnhancedMessageRendererProps {
   message: string;
@@ -30,237 +34,96 @@ export const EnhancedMessageRenderer = ({ message, timestamp, mode }: EnhancedMe
   const modeInfo = getModeInfo(mode);
   const ModeIcon = modeInfo.icon;
 
-  // Enhanced message cleaning and processing
+  // Clean and process the message
   const processedMessage = useMemo(() => {
-    let cleaned = message;
-    
-    // Step 1: Remove citations and source references
-    cleaned = cleaned
-      .replace(/\[\d+\]/g, '') // Remove [1], [2], etc.
-      .replace(/\[[\w\s,.-]+\]/g, '') // Remove [source name] etc.
-      .replace(/Source[s]?:\s*.*$/gm, '') // Remove source lines
-      .replace(/References?:\s*.*$/gm, '') // Remove reference lines
-      .replace(/\*\*Sources?\*\*[\s\S]*$/gm, '') // Remove **Sources** sections
-      .replace(/---[\s\S]*Sources?[\s\S]*$/gm, ''); // Remove footer sections
-    
-    // Step 2: Fix LaTeX formatting
-    cleaned = cleaned
-      .replace(/\\\\([a-zA-Z]+)/g, '\\$1') // Fix double backslashes
-      .replace(/\$\$([^$]+)\$\$/g, (match, content) => {
-        const cleanContent = content.trim();
-        return `$$${cleanContent}$$`;
-      })
-      .replace(/\$([^$\n]+)\$/g, (match, content) => {
-        const cleanContent = content.trim();
-        return `$${cleanContent}$`;
-      });
-    
-    // Step 3: Auto-detect and wrap common math patterns
-    cleaned = cleaned
-      .replace(/(?<![\$\\])(\d+)\s*\^\s*(\{[^}]+\}|\w+)(?![^\$]*\$)/g, '$$$1^{$2}$$')
-      .replace(/(?<![\$\\])(\d+)\s*_\s*(\{[^}]+\}|\w+)(?![^\$]*\$)/g, '$$$1_{$2}$$')
-      .replace(/(?<![\$\\])(sqrt|sin|cos|tan|log|ln)\s*\(/g, '$$\\$1(')
-      .replace(/(?<![\$\\])([A-Za-z])\s*=\s*([^.\n]+)(?=\.|\n|$)/g, '$$1 = $2$$');
-    
-    // Step 4: Clean up whitespace and add paragraph breaks
-    cleaned = cleaned
-      .replace(/\s+/g, ' ')
-      .replace(/\n\s+/g, '\n')
-      .trim();
-    
-    // Step 5: Add paragraph breaks for better readability
-    if (!cleaned.match(/Step\s+\d+/i) && cleaned.length > 200) {
-      cleaned = cleaned.replace(/([.:])\s+([A-Z][a-z])/g, '$1\n\n$2');
-    }
-    
-    return cleaned;
+    return cleanModelOutput(message);
   }, [message]);
 
-  // Render math text with KaTeX
-  const renderMathText = (text: string) => {
-    const displayMathPattern = /\$\$([^$]+?)\$\$/g;
-    const inlineMathPattern = /(?<!\$)\$([^$\n]+?)\$(?!\$)/g;
-    
-    let parts = [];
-    let lastIndex = 0;
-    
-    // Handle display math ($$...$$)
-    text.replace(displayMathPattern, (match, mathContent, index) => {
-      if (index > lastIndex) {
-        parts.push(text.substring(lastIndex, index));
-      }
-      
-      try {
-        const cleanMathContent = mathContent.trim();
-        parts.push(
-          <div key={`display-${index}`} className="my-4 overflow-x-auto">
-            <div className="flex justify-center min-w-0">
-              <div className="max-w-full overflow-x-auto">
-                <BlockMath math={cleanMathContent} />
-              </div>
-            </div>
-          </div>
-        );
-      } catch (error) {
-        console.warn('LaTeX parsing error:', error, 'Content:', mathContent);
-        parts.push(
-          <div key={`display-error-${index}`} className="my-2 text-center font-mono text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400">
-            {mathContent.trim()}
-          </div>
-        );
-      }
-      
-      lastIndex = index + match.length;
-      return match;
-    });
-    
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
+  // Extract steps for structured rendering
+  const steps = useMemo(() => {
+    if (mode === "Study Mode" || mode === "Research Mode") {
+      return extractSteps(processedMessage);
     }
-    
-    // Handle inline math in remaining text parts
-    return parts.map((part, partIndex) => {
-      if (typeof part === 'string') {
-        const inlineParts = [];
-        let inlineLastIndex = 0;
-        
-        part.replace(inlineMathPattern, (match, mathContent, index) => {
-          if (index > inlineLastIndex) {
-            inlineParts.push(part.substring(inlineLastIndex, index));
-          }
-          
-          try {
-            inlineParts.push(
-              <span key={`inline-${partIndex}-${index}`} className="katex-inline">
-                <InlineMath math={mathContent.trim()} />
-              </span>
-            );
-          } catch (error) {
-            console.warn('Inline LaTeX parsing error:', error, 'Content:', mathContent);
-            inlineParts.push(
-              <span key={`inline-error-${partIndex}-${index}`} className="font-mono text-sm bg-yellow-50 dark:bg-yellow-900/20 px-1 rounded">
-                {mathContent.trim()}
-              </span>
-            );
-          }
-          
-          inlineLastIndex = index + match.length;
-          return match;
-        });
-        
-        if (inlineLastIndex < part.length) {
-          inlineParts.push(part.substring(inlineLastIndex));
-        }
-        
-        return inlineParts.length > 1 ? inlineParts : part;
-      }
-      return part;
-    }).flat();
-  };
+    return [];
+  }, [processedMessage, mode]);
 
-  // Parse content into structured sections
+  // Render content with proper formatting
   const renderContent = useMemo(() => {
-    const lines = processedMessage.split('\n');
-    const elements: JSX.Element[] = [];
-    let currentStepContent: string[] = [];
-    let stepNumber = 0;
-
-    const addContentCard = (content: string[], title?: string, stepNum?: number) => {
-      if (content.length === 0) return;
-      
-      const hasTitle = title || stepNum;
-      const hasMath = content.some(line => /\$|\\\w+|\^|_|√|∛|∜|∑|∫|∞|±|≤|≥|≠|≈|∆|∂|∇|∈|∉|⊂|⊃|∪|∩/i.test(line));
-      
-      elements.push(
-        <div key={`content-${stepNum || elements.length}`} className={cn(
-          "rounded-xl p-4 mb-4 transition-all duration-300 animate-in slide-in-from-bottom-2",
-          hasTitle 
-            ? "bg-gradient-to-br from-muted/30 to-muted/15 border border-border/50 hover:border-primary/30 hover:shadow-lg"
-            : "bg-gradient-to-br from-muted/15 to-muted/8 border border-border/30"
-        )}>
-          {hasTitle && (
-            <div className="flex items-center gap-2 mb-3">
-              {stepNum && (
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/30 to-primary/15 flex items-center justify-center border border-primary/30 shadow-sm">
-                  <span className="text-sm font-bold text-primary">{stepNum}</span>
-                </div>
-              )}
-              <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                {stepNum && <ModeIcon className="w-4 h-4 text-primary" />}
-                <span>{title || `Step ${stepNum}`}</span>
-              </h4>
-            </div>
-          )}
-          <div className="space-y-3">
-            {content.map((line, idx) => {
-              const lineHasMath = /\$|\\\w+|\^|_|√|∛|∜|∑|∫|∞|±|≤|≥|≠|≈|∆|∂|∇|∈|∉|⊂|⊃|∪|∩/i.test(line);
-              
-              return (
-                <div key={idx} className={cn(
-                  "break-words leading-relaxed text-sm sm:text-base",
-                  lineHasMath 
-                    ? "bg-gradient-to-r from-accent/10 to-accent/5 border border-accent/20 p-3 rounded-lg shadow-sm font-mono" 
-                    : "text-muted-foreground py-1"
-                )}>
-                  <div className="overflow-x-auto min-w-0">
-                    {renderMathText(line)}
+    // For Study and Research modes with steps
+    if (steps.length > 0 && (mode === "Study Mode" || mode === "Research Mode")) {
+      return (
+        <div className="space-y-4">
+          {steps.map((step, index) => {
+            const hasMath = containsMath(step.content);
+            
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "rounded-xl p-4 transition-all duration-300 animate-in slide-in-from-bottom-2",
+                  "bg-gradient-to-br from-muted/30 to-muted/15 border border-border/50",
+                  "hover:border-primary/30 hover:shadow-lg"
+                )}
+              >
+                {step.title && (
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/30">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/30 to-primary/15 flex items-center justify-center border border-primary/30 shadow-sm">
+                      <span className="text-sm font-bold text-primary">{index + 1}</span>
+                    </div>
+                    <h4 className="font-bold text-base text-foreground flex items-center gap-2">
+                      <ModeIcon className="w-4 h-4 text-primary" />
+                      <span>{step.title}</span>
+                    </h4>
                   </div>
+                )}
+                <div
+                  className={cn(
+                    "prose prose-sm max-w-none dark:prose-invert",
+                    "prose-headings:text-foreground prose-p:text-muted-foreground prose-p:leading-relaxed",
+                    "prose-strong:text-foreground prose-em:text-foreground",
+                    "prose-code:text-accent-foreground prose-code:bg-accent/10 prose-code:px-1 prose-code:rounded",
+                    "prose-pre:bg-muted prose-pre:border prose-pre:border-border",
+                    hasMath && "bg-gradient-to-r from-accent/10 to-accent/5 p-3 rounded-lg border border-accent/20"
+                  )}
+                >
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {step.content}
+                  </ReactMarkdown>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       );
-    };
-
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
-      if (!trimmedLine) return;
-      
-      // Detect steps for Study and Research modes
-      const stepMatch = trimmedLine.match(/^(?:Step\s+(\d+)[:.]?\s*(.*)|\d+\.\s+(.*)|(\d+)\)\s+(.*))$/i);
-      
-      if (stepMatch && (mode === "Study Mode" || mode === "Research Mode")) {
-        // Add previous step if exists
-        if (currentStepContent.length > 0) {
-          addContentCard(currentStepContent, undefined, stepNumber);
-        }
-        
-        // Start new step
-        stepNumber = parseInt(stepMatch[1] || stepMatch[4] || '1');
-        const stepContent = stepMatch[2] || stepMatch[3] || stepMatch[5] || '';
-        currentStepContent = stepContent ? [stepContent] : [];
-      } else if (stepNumber > 0) {
-        // Add to current step
-        currentStepContent.push(trimmedLine);
-      } else {
-        // Regular content - add as paragraph
-        if (trimmedLine.length > 0) {
-          addContentCard([trimmedLine]);
-        }
-      }
-    });
-
-    // Add the last step if exists
-    if (currentStepContent.length > 0) {
-      addContentCard(currentStepContent, undefined, stepNumber);
     }
 
-    // If no structured content was created, render as paragraphs
-    if (elements.length === 0) {
-      const paragraphs = processedMessage.split(/\n\s*\n/).filter(p => p.trim());
-      
-      if (paragraphs.length > 1) {
-        paragraphs.forEach((paragraph, pIndex) => {
-          addContentCard([paragraph]);
-        });
-      } else {
-        addContentCard([processedMessage]);
-      }
-    }
-
-    return elements;
-  }, [processedMessage, mode, ModeIcon]);
+    // For other modes or non-structured content
+    const hasMath = containsMath(processedMessage);
+    return (
+      <div
+        className={cn(
+          "prose prose-sm max-w-none dark:prose-invert",
+          "prose-headings:text-foreground prose-p:text-muted-foreground prose-p:leading-relaxed",
+          "prose-strong:text-foreground prose-em:text-foreground",
+          "prose-code:text-accent-foreground prose-code:bg-accent/10 prose-code:px-1 prose-code:rounded",
+          "prose-pre:bg-muted prose-pre:border prose-pre:border-border",
+          "prose-ul:text-muted-foreground prose-ol:text-muted-foreground",
+          "prose-li:my-1",
+          hasMath && "bg-gradient-to-r from-accent/10 to-accent/5 p-3 rounded-lg border border-accent/20"
+        )}
+      >
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+        >
+          {processedMessage}
+        </ReactMarkdown>
+      </div>
+    );
+  }, [processedMessage, mode, ModeIcon, steps]);
 
   return (
     <div className="flex justify-start w-full">

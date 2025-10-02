@@ -124,6 +124,51 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Tailwind Typography customization for react-markdown */
+  .prose {
+    @apply max-w-none;
+  }
+  
+  .prose p {
+    @apply my-3 leading-relaxed;
+  }
+  
+  .prose strong {
+    @apply font-bold text-foreground;
+  }
+  
+  .prose em {
+    @apply italic text-foreground;
+  }
+  
+  .prose code {
+    @apply text-sm px-1.5 py-0.5 rounded font-mono;
+  }
+  
+  .prose pre {
+    @apply my-4 p-4 rounded-lg overflow-x-auto;
+  }
+  
+  .prose ul, .prose ol {
+    @apply my-3 pl-6;
+  }
+  
+  .prose li {
+    @apply my-1;
+  }
+  
+  .prose blockquote {
+    @apply border-l-4 border-primary/30 pl-4 italic my-4;
+  }
+  
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    @apply font-bold mt-6 mb-3;
+  }
+  
+  .prose hr {
+    @apply my-6 border-border;
+  }
 
   /* Math rendering styles */
   .katex {
