@@ -173,23 +173,50 @@ All colors MUST be HSL.
   /* Fun Mode specific styling */
   .fun-mode-content {
     @apply text-foreground;
+    line-height: 1.7;
   }
 
   .fun-mode-content p {
     @apply leading-relaxed;
+    white-space: pre-line; /* Preserve line breaks from \n */
   }
 
   .fun-mode-content ol,
   .fun-mode-content ul {
-    @apply my-3 space-y-2;
+    @apply my-3;
+    padding-left: 0.25rem;
   }
 
   .fun-mode-content li {
     @apply leading-relaxed;
+    margin-bottom: 0.75rem;
+    padding-left: 0.25rem;
+    line-height: 1.6;
   }
 
   .fun-mode-content strong {
     @apply text-accent font-semibold;
+  }
+
+  /* Ensure emojis display correctly in Fun Mode */
+  .fun-mode-content * {
+    font-feature-settings: "emoji";
+  }
+
+  /* Better spacing for numbered lists in Fun Mode */
+  .fun-mode-content ol > li {
+    padding-bottom: 0.5rem;
+  }
+
+  /* Mobile optimization for Fun Mode */
+  @media (max-width: 640px) {
+    .fun-mode-content {
+      font-size: 0.9rem;
+    }
+    
+    .fun-mode-content li {
+      margin-bottom: 1rem;
+    }
   }
 
   /* Math rendering styles */

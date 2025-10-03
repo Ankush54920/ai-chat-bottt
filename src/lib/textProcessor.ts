@@ -3,6 +3,45 @@
  */
 
 /**
+ * Cleans Fun Mode output while preserving emojis and ensuring proper list formatting
+ * @param raw - Raw text from AI model in Fun Mode
+ * @returns Cleaned Markdown string with emojis and proper list formatting
+ */
+export const cleanFunModeOutput = (raw: string): string => {
+  if (!raw) return '';
+
+  let cleaned = raw;
+
+  // Step 1: Convert HTML to proper formatting while preserving emojis
+  cleaned = cleaned
+    .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> to newlines
+    .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')  // Convert <p> to paragraphs
+    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')  // Convert <strong> to bold
+    .replace(/<b>(.*?)<\/b>/gi, '**$1**')  // Convert <b> to bold
+    .replace(/<em>(.*?)<\/em>/gi, '*$1*')  // Convert <em> to italic
+    .replace(/<i>(.*?)<\/i>/gi, '*$1*')  // Convert <i> to italic
+    .replace(/<\/?(div|span|section|article)[^>]*>/gi, '');  // Remove other HTML tags
+
+  // Step 2: Ensure numbered lists have proper formatting
+  // Convert patterns like "1. 😂 Text" or "1.😂 Text" to "1. 😂 Text\n"
+  cleaned = cleaned.replace(/(\d+)\.\s*([^\n]+)/g, (match, num, content) => {
+    return `${num}. ${content.trim()}\n`;
+  });
+
+  // Step 3: Ensure proper spacing between list items
+  // Add blank line between numbered items for better mobile readability
+  cleaned = cleaned.replace(/(\n\d+\.\s+[^\n]+\n)(?=\d+\.)/g, '$1\n');
+
+  // Step 4: Clean up excessive whitespace but preserve intentional spacing
+  cleaned = cleaned
+    .replace(/[ \t]+/g, ' ')  // Normalize spaces on same line
+    .replace(/\n{4,}/g, '\n\n\n')  // Max 3 consecutive newlines
+    .trim();
+
+  return cleaned;
+};
+
+/**
  * Cleans model output by normalizing HTML/Markdown and preserving LaTeX
  * @param raw - Raw text from AI model
  * @returns Cleaned Markdown string safe for react-markdown + rehype-katex
