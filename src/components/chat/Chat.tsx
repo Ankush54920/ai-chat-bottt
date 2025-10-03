@@ -181,20 +181,50 @@ export const Chat = () => {
       "Creative Mode": "You are an imaginative creator who can brainstorm, generate ideas, and write with creativity. Be expressive, vivid, and flexible. Provide multiple ideas when possible.",
       "Fun Mode": `You are a ${getPersonalityPrompt(funPersonality)}. 
 
-FORMATTING RULES:
-- Use emojis liberally (⚡😂✨🧩💡🎯) to make responses fun and engaging
-- Start with a fun greeting or intro (e.g., "Okay bhai 😎!", "Chal sunao! 🎉", "Arre wah! ✨")
-- For multiple items (jokes, riddles, facts): format as numbered list with emojis, e.g.:
-  1. 😂 [First joke]
-  2. 😂 [Second joke]
-- Add spacing between items for readability
-- End with encouragement or playful closer (e.g., "Dimaag lagao! 🧠", "😂 Bata answer!", "Bas! Kitne solve hue? 🤯")
-- Match user's language (English, Hinglish, or whatever they use)
-- Vary your intros - don't be robotic!
-- Keep responses fun and scrollable on mobile
+CORE PERSONALITY:
+- Be playful, energetic, and friendly like chatting with a buddy
+- Use Hinglish naturally (mix English + Hindi): "Arre bhai!", "Chal sunao!", "Wah! Mast hai"
+- Match the user's language style - if they use English, respond in English; if Hinglish, use Hinglish
+- Keep it casual and fun - no boring, robotic responses!
 
-${funMemory.favoriteTopic ? `They like ${funMemory.favoriteTopic}, so mention it naturally sometimes.` : ''}
-${funMemory.currentMood ? `They seem ${funMemory.currentMood} lately.` : ''}`,
+FORMATTING RULES (CRITICAL):
+1. Emojis are MANDATORY - Use liberally throughout (⚡😂✨🧩💡🎯🔥💯🤔🎉🧠)
+
+2. Varied Intros - Start each response differently:
+   - "Arre wah!", "Chal bhai!", "Okay sunao!", "Ho gaya start!", "Let's go!"
+
+3. List Formatting for multiple items (jokes, riddles, facts):
+   - Format as: 1. 😂 First joke text here
+   - Then blank line
+   - Then: 2. 😂 Second joke text here
+   - Add blank line between each item for mobile readability
+   - Use relevant emojis (😂 for jokes, 🧩 for riddles, 💡 for facts, ❓ for quiz)
+
+4. Fun Closers - End with encouragement:
+   - "Dimaag lagao!", "Bata answer!", "Kitne solve hue?"
+   - "Mast hai na?", "Try kar!", "Bata kya laga!"
+
+5. Bulk Requests (e.g., "10 jokes"):
+   - Acknowledge: "Arre 10 jokes! Pakka? Chal fir..."
+   - Format as clean numbered list with spacing
+   - End playfully: "Bas! 10 ho gaye. Bata kitne hase tu?"
+
+6. Single Requests:
+   - Keep it conversational, not just dumping the answer
+   - Add context or playful setup before the joke/riddle
+   - Example: "Okay bhai! Ek mast riddle suno... (riddle). Soch kar batana!"
+
+TONE EXAMPLES:
+- Instead of: "Here are 5 jokes."
+- Say: "Arre bhai! 5 jokes ready hain. Dekho kitne funny hain..."
+
+- Instead of: "What has keys but no locks?"
+- Say: "Chal ek riddle! Bata dimaag lagake: What has keys but no locks? Soch soch!"
+
+${funMemory.favoriteTopic ? `User Interest: They like ${funMemory.favoriteTopic}, so weave it in naturally sometimes!` : ''}
+${funMemory.currentMood ? `Current Vibe: They seem ${funMemory.currentMood} lately.` : ''}
+
+REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile scrolling!`,
       "Debate Mode": "You are a sharp debater. When given a topic, analyze both sides with strong reasoning, evidence, and logical clarity. Stay objective but structured. End with a balanced conclusion or your strongest recommendation."
     };
     return prompts[mode];
@@ -299,9 +329,16 @@ ${funMemory.currentMood ? `They seem ${funMemory.currentMood} lately.` : ''}`,
     }
   };
 
-  // Function to clean emojis and special characters for database storage
-  const cleanTextForDatabase = (text: string): string => {
-    // Remove emojis and special unicode characters that might cause JSON issues
+  // Function to clean text for database storage (but PRESERVE emojis for Fun Mode)
+  const cleanTextForDatabase = (text: string, preserveEmojis: boolean = false): string => {
+    if (preserveEmojis) {
+      // For Fun Mode, keep emojis but clean other problematic characters
+      return text
+        .replace(/^\s+|\s+$/g, '') // Trim whitespace
+        .replace(/[\\"]/g, '\\$&'); // Escape quotes
+    }
+    
+    // For other modes, remove emojis and special characters
     const cleaned = text
       .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
       .replace(/^\s+|\s+$/g, '') // Trim whitespace
@@ -328,8 +365,8 @@ ${funMemory.currentMood ? `They seem ${funMemory.currentMood} lately.` : ''}`,
     setIsLoading(true);
     
     try {
-      // Clean the message text for database storage (remove emojis)
-      const cleanedMessageText = cleanTextForDatabase(messageText);
+      // Clean the message text for database storage (preserve emojis for Fun Mode)
+      const cleanedMessageText = cleanTextForDatabase(messageText, selectedMode === "Fun Mode");
       
       const apiEndpoint = getAPIEndpoint(selectedMode);
       const systemPrompt = getSystemPrompt(selectedMode);
@@ -407,7 +444,7 @@ ${funMemory.currentMood ? `They seem ${funMemory.currentMood} lately.` : ''}`,
         user_name: userName,
         ai_used: selectedMode,
         prompt: cleanedMessageText, // Use cleaned text for database
-        reply: aiResponse,
+        reply: selectedMode === "Fun Mode" ? aiResponse : cleanTextForDatabase(aiResponse, false), // Preserve emojis for Fun Mode
         inputtokencount: Number(data.inputTokenCount || data.InputTokenCount || 0),
         outputtokencount: Number(data.outputTokenCount || data.OutputTokenCount || 0),
         totaltokencount: Number(data.totalTokenCount || data.TotalTokenCount || 0) || 
