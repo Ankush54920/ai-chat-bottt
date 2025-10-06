@@ -334,8 +334,9 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
     if (!text) return '';
     
     if (preserveEmojis) {
-      // For Fun Mode, return as-is (UTF-8 string with emojis preserved)
-      return text.trim();
+      // For Fun Mode, preserve everything (UTF-8 emojis, line breaks, markdown)
+      // Store raw UTF-8 string without any modifications
+      return text;
     }
     
     // For other modes, remove emojis and special characters

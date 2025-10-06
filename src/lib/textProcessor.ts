@@ -12,7 +12,7 @@ export const cleanFunModeOutput = (raw: string): string => {
 
   let cleaned = raw;
 
-  // Step 1: Convert HTML to proper formatting while preserving emojis
+  // Step 1: Convert HTML to Markdown while preserving emojis and UTF-8
   cleaned = cleaned
     .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> to newlines
     .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')  // Convert <p> to paragraphs
@@ -20,6 +20,11 @@ export const cleanFunModeOutput = (raw: string): string => {
     .replace(/<b>(.*?)<\/b>/gi, '**$1**')  // Convert <b> to bold
     .replace(/<em>(.*?)<\/em>/gi, '*$1*')  // Convert <em> to italic
     .replace(/<i>(.*?)<\/i>/gi, '*$1*')  // Convert <i> to italic
+    .replace(/<ul>/gi, '')  // Remove <ul> tags
+    .replace(/<\/ul>/gi, '\n')  // Close list with newline
+    .replace(/<ol>/gi, '')  // Remove <ol> tags
+    .replace(/<\/ol>/gi, '\n')  // Close list with newline
+    .replace(/<li>(.*?)<\/li>/gi, '• $1\n')  // Convert <li> to bullet points
     .replace(/<\/?(div|span|section|article)[^>]*>/gi, '');  // Remove other HTML tags
 
   // Step 2: Ensure numbered lists have proper formatting
@@ -32,7 +37,7 @@ export const cleanFunModeOutput = (raw: string): string => {
   // Add blank line between numbered items for better mobile readability
   cleaned = cleaned.replace(/(\n\d+\.\s+[^\n]+\n)(?=\d+\.)/g, '$1\n');
 
-  // Step 4: Clean up excessive whitespace but preserve intentional spacing
+  // Step 4: Clean up excessive whitespace but preserve line breaks and emojis
   cleaned = cleaned
     .replace(/[ \t]+/g, ' ')  // Normalize spaces on same line
     .replace(/\n{4,}/g, '\n\n\n')  // Max 3 consecutive newlines
