@@ -331,11 +331,11 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
 
   // Function to clean text for database storage (but PRESERVE emojis for Fun Mode)
   const cleanTextForDatabase = (text: string, preserveEmojis: boolean = false): string => {
+    if (!text) return '';
+    
     if (preserveEmojis) {
-      // For Fun Mode, keep emojis but clean other problematic characters
-      return text
-        .replace(/^\s+|\s+$/g, '') // Trim whitespace
-        .replace(/[\\"]/g, '\\$&'); // Escape quotes
+      // For Fun Mode, return as-is (UTF-8 string with emojis preserved)
+      return text.trim();
     }
     
     // For other modes, remove emojis and special characters
@@ -444,7 +444,7 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
         user_name: userName,
         ai_used: selectedMode,
         prompt: cleanedMessageText, // Use cleaned text for database
-        reply: selectedMode === "Fun Mode" ? aiResponse : cleanTextForDatabase(aiResponse, false), // Preserve emojis for Fun Mode
+        reply: cleanTextForDatabase(aiResponse, selectedMode === "Fun Mode"), // Preserve emojis for Fun Mode
         inputtokencount: Number(data.inputTokenCount || data.InputTokenCount || 0),
         outputtokencount: Number(data.outputTokenCount || data.OutputTokenCount || 0),
         totaltokencount: Number(data.totalTokenCount || data.TotalTokenCount || 0) || 
@@ -455,6 +455,7 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
       const newConversation: Conversation = {
         ...conversationData,
         prompt: messageText, // Use original text with emojis for display
+        reply: aiResponse, // Use raw AI response with emojis for immediate display
         id: `temp-${Date.now()}`,
         created_at: new Date().toISOString(),
       };
