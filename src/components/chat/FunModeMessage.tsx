@@ -8,8 +8,16 @@ interface FunModeMessageProps {
 }
 
 export const FunModeMessage = ({ message, timestamp }: FunModeMessageProps) => {
+  // Debug: Log raw message from Supabase
+  console.log('🔍 [FunModeMessage] Raw message from Supabase:', message);
+  console.log('🔍 [FunModeMessage] Raw message contains emojis?', /[\u{1F300}-\u{1F9FF}]/u.test(message));
+  
   // Preprocess the message to ensure proper formatting
   const processedMessage = cleanFunModeOutput(message);
+  
+  // Debug: Log processed message after cleaning
+  console.log('🔍 [FunModeMessage] Processed message after cleanFunModeOutput:', processedMessage);
+  console.log('🔍 [FunModeMessage] Processed message contains emojis?', /[\u{1F300}-\u{1F9FF}]/u.test(processedMessage));
   
   return (
     <div className="flex justify-start">

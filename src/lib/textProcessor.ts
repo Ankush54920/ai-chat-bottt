@@ -10,6 +10,10 @@
 export const cleanFunModeOutput = (raw: string): string => {
   if (!raw) return '';
 
+  // Debug: Log input
+  console.log('🔧 [cleanFunModeOutput] Input raw string:', raw);
+  console.log('🔧 [cleanFunModeOutput] Input contains emojis?', /[\u{1F300}-\u{1F9FF}]/u.test(raw));
+
   let cleaned = raw;
 
   // Step 1: Convert HTML to Markdown while preserving emojis and UTF-8
@@ -42,6 +46,10 @@ export const cleanFunModeOutput = (raw: string): string => {
     .replace(/[ \t]+/g, ' ')  // Normalize spaces on same line
     .replace(/\n{4,}/g, '\n\n\n')  // Max 3 consecutive newlines
     .trim();
+
+  // Debug: Log output
+  console.log('🔧 [cleanFunModeOutput] Output cleaned string:', cleaned);
+  console.log('🔧 [cleanFunModeOutput] Output contains emojis?', /[\u{1F300}-\u{1F9FF}]/u.test(cleaned));
 
   return cleaned;
 };
