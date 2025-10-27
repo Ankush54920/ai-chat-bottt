@@ -12,14 +12,14 @@ export const cleanFunModeOutput = (raw: string): string => {
 
   let cleaned = raw;
 
-  // Step 1: Convert HTML to Markdown while preserving emojis and UTF-8
+  // Step 1: Convert HTML to plain text while preserving emojis and UTF-8
   cleaned = cleaned
     .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> to newlines
     .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')  // Convert <p> to paragraphs
-    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')  // Convert <strong> to bold
-    .replace(/<b>(.*?)<\/b>/gi, '**$1**')  // Convert <b> to bold
-    .replace(/<em>(.*?)<\/em>/gi, '*$1*')  // Convert <em> to italic
-    .replace(/<i>(.*?)<\/i>/gi, '*$1*')  // Convert <i> to italic
+    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')  // Convert <strong> to markdown bold
+    .replace(/<b>(.*?)<\/b>/gi, '**$1**')  // Convert <b> to markdown bold
+    .replace(/<em>(.*?)<\/em>/gi, '*$1*')  // Convert <em> to markdown italic
+    .replace(/<i>(.*?)<\/i>/gi, '*$1*')  // Convert <i> to markdown italic
     .replace(/<ul>/gi, '')  // Remove <ul> tags
     .replace(/<\/ul>/gi, '\n')  // Close list with newline
     .replace(/<ol>/gi, '')  // Remove <ol> tags
@@ -28,20 +28,18 @@ export const cleanFunModeOutput = (raw: string): string => {
     .replace(/<\/?(div|span|section|article)[^>]*>/gi, '');  // Remove other HTML tags
 
   // Step 2: Ensure numbered lists have proper formatting
-  // Convert patterns like "1. 😂 Text" or "1.😂 Text" to "1. 😂 Text\n"
   cleaned = cleaned.replace(/(\d+)\.\s*([^\n]+)/g, (match, num, content) => {
     return `${num}. ${content.trim()}\n`;
   });
 
-  // Step 3: Ensure proper spacing between list items
-  // Add blank line between numbered items for better mobile readability
-  cleaned = cleaned.replace(/(\n\d+\.\s+[^\n]+\n)(?=\d+\.)/g, '$1\n');
-
-  // Step 4: Clean up excessive whitespace but preserve line breaks and emojis
+  // Step 3: Preserve double line breaks for paragraph spacing
+  // DON'T collapse multiple newlines - Fun Mode needs them for readability
   cleaned = cleaned
-    .replace(/[ \t]+/g, ' ')  // Normalize spaces on same line
-    .replace(/\n{4,}/g, '\n\n\n')  // Max 3 consecutive newlines
+    .replace(/[ \t]+/g, ' ')  // Normalize spaces on same line only
     .trim();
+
+  // Step 4: Ensure emojis are NOT escaped or modified
+  // (JavaScript strings handle UTF-8 natively, so no action needed)
 
   return cleaned;
 };

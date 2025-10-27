@@ -174,33 +174,18 @@ All colors MUST be HSL.
   .fun-mode-content {
     @apply text-foreground;
     line-height: 1.7;
+    white-space: pre-wrap; /* Preserve line breaks from \n */
+    word-wrap: break-word;
   }
 
-  .fun-mode-content p {
-    @apply leading-relaxed;
-    white-space: pre-line; /* Preserve line breaks from \n */
-  }
-
-  .fun-mode-content ol,
-  .fun-mode-content ul {
-    @apply my-3;
-    padding-left: 0.25rem;
-  }
-
-  .fun-mode-content li {
-    @apply leading-relaxed;
-    margin-bottom: 0.75rem;
-    padding-left: 0.25rem;
-    line-height: 1.6;
+  /* Ensure emojis display correctly in Fun Mode */
+  .fun-mode-content,
+  .fun-mode-content * {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   }
 
   .fun-mode-content strong {
     @apply text-accent font-semibold;
-  }
-
-  /* Ensure emojis display correctly in Fun Mode */
-  .fun-mode-content * {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   }
 
   /* Better spacing for numbered lists in Fun Mode */

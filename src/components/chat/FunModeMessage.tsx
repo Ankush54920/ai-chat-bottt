@@ -1,5 +1,4 @@
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useMemo } from 'react';
 import { cleanFunModeOutput } from '@/lib/textProcessor';
 
 interface FunModeMessageProps {
@@ -7,9 +6,25 @@ interface FunModeMessageProps {
   timestamp: Date;
 }
 
+// Convert markdown to HTML while preserving emojis
+const markdownToHtml = (text: string): string => {
+  return text
+    // Bold text: **text** → <strong>text</strong>
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic text: *text* → <em>text</em>
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Line breaks: \n → <br>
+    .replace(/\n/g, '<br>')
+    // Preserve emojis (no changes needed - they're already UTF-8)
+    ;
+};
+
 export const FunModeMessage = ({ message, timestamp }: FunModeMessageProps) => {
-  // Preprocess the message to ensure proper formatting
-  const processedMessage = cleanFunModeOutput(message);
+  // Process the message once using useMemo to avoid re-processing on every render
+  const processedHtml = useMemo(() => {
+    const cleaned = cleanFunModeOutput(message);
+    return markdownToHtml(cleaned);
+  }, [message]);
   
   return (
     <div className="flex justify-start">
@@ -17,32 +32,11 @@ export const FunModeMessage = ({ message, timestamp }: FunModeMessageProps) => {
         <div className="text-xs font-medium opacity-70 text-accent mb-2">
           AI (Fun Mode) 🎉
         </div>
-        <div className="prose prose-sm max-w-none dark:prose-invert fun-mode-content">
-          <ReactMarkdown 
-            remarkPlugins={[remarkGfm]}
-            components={{
-              // Custom rendering for lists to preserve emojis and formatting
-              ol: ({ children }) => (
-                <ol className="space-y-3 my-3 list-decimal list-inside pl-1">{children}</ol>
-              ),
-              ul: ({ children }) => (
-                <ul className="space-y-3 my-3 list-disc list-inside pl-1">{children}</ul>
-              ),
-              li: ({ children }) => (
-                <li className="leading-relaxed text-sm pl-1 mb-2">{children}</li>
-              ),
-              p: ({ children }) => (
-                <p className="leading-relaxed mb-2 last:mb-0 whitespace-pre-line">{children}</p>
-              ),
-              // Preserve emojis in all elements
-              strong: ({ children }) => (
-                <strong className="font-bold text-accent">{children}</strong>
-              ),
-            }}
-          >
-            {processedMessage}
-          </ReactMarkdown>
-        </div>
+        {/* Direct HTML rendering with emoji-safe styling */}
+        <div 
+          className="prose prose-sm max-w-none dark:prose-invert fun-mode-content"
+          dangerouslySetInnerHTML={{ __html: processedHtml }}
+        />
         <div className="text-xs opacity-50 mt-2">
           {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
