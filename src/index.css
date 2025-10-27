@@ -200,7 +200,7 @@ All colors MUST be HSL.
 
   /* Ensure emojis display correctly in Fun Mode */
   .fun-mode-content * {
-    font-feature-settings: "emoji";
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   }
 
   /* Better spacing for numbered lists in Fun Mode */
