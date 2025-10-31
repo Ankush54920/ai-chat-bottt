@@ -22,7 +22,10 @@ const markdownToHtml = (text: string): string => {
 export const FunModeMessage = ({ message, timestamp }: FunModeMessageProps) => {
   // Process the message once using useMemo to avoid re-processing on every render
   const processedHtml = useMemo(() => {
-    const cleaned = cleanFunModeOutput(message);
+    // Only clean if message contains HTML tags (fresh AI responses)
+    // Stored messages with emojis should skip cleaning to prevent corruption
+    const hasHtmlTags = /<\w+>|<\/\w+>/.test(message);
+    const cleaned = hasHtmlTags ? cleanFunModeOutput(message) : message;
     return markdownToHtml(cleaned);
   }, [message]);
   

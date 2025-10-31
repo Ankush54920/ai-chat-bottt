@@ -13,22 +13,23 @@ export const cleanFunModeOutput = (raw: string): string => {
   let cleaned = raw;
 
   // Step 1: Convert HTML to plain text while preserving emojis and UTF-8
+  // Use Unicode flag 'u' for emoji-safe regex
   cleaned = cleaned
-    .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> to newlines
-    .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')  // Convert <p> to paragraphs
-    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')  // Convert <strong> to markdown bold
-    .replace(/<b>(.*?)<\/b>/gi, '**$1**')  // Convert <b> to markdown bold
-    .replace(/<em>(.*?)<\/em>/gi, '*$1*')  // Convert <em> to markdown italic
-    .replace(/<i>(.*?)<\/i>/gi, '*$1*')  // Convert <i> to markdown italic
-    .replace(/<ul>/gi, '')  // Remove <ul> tags
-    .replace(/<\/ul>/gi, '\n')  // Close list with newline
-    .replace(/<ol>/gi, '')  // Remove <ol> tags
-    .replace(/<\/ol>/gi, '\n')  // Close list with newline
-    .replace(/<li>(.*?)<\/li>/gi, '• $1\n')  // Convert <li> to bullet points
-    .replace(/<\/?(div|span|section|article)[^>]*>/gi, '');  // Remove other HTML tags
+    .replace(/<br\s*\/?>/giu, '\n')  // Convert <br> to newlines
+    .replace(/<p>(.*?)<\/p>/giu, '$1\n\n')  // Convert <p> to paragraphs
+    .replace(/<strong>(.*?)<\/strong>/giu, '**$1**')  // Convert <strong> to markdown bold
+    .replace(/<b>(.*?)<\/b>/giu, '**$1**')  // Convert <b> to markdown bold
+    .replace(/<em>(.*?)<\/em>/giu, '*$1*')  // Convert <em> to markdown italic
+    .replace(/<i>(.*?)<\/i>/giu, '*$1*')  // Convert <i> to markdown italic
+    .replace(/<ul>/giu, '')  // Remove <ul> tags
+    .replace(/<\/ul>/giu, '\n')  // Close list with newline
+    .replace(/<ol>/giu, '')  // Remove <ol> tags
+    .replace(/<\/ol>/giu, '\n')  // Close list with newline
+    .replace(/<li>(.*?)<\/li>/giu, '• $1\n')  // Convert <li> to bullet points
+    .replace(/<\/?(div|span|section|article)[^>]*>/giu, '');  // Remove other HTML tags
 
   // Step 2: Ensure numbered lists have proper formatting
-  cleaned = cleaned.replace(/(\d+)\.\s*([^\n]+)/g, (match, num, content) => {
+  cleaned = cleaned.replace(/(\d+)\.\s*([^\n]+)/gu, (match, num, content) => {
     return `${num}. ${content.trim()}\n`;
   });
 
