@@ -396,8 +396,17 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
       const data = await response.json();
       console.log('API Response:', data);
       
-      if (!response.ok || (!data.response && !data.reply)) {
+      if (!response.ok) {
+        // Handle rate limit errors specifically
+        if (response.status === 429) {
+          throw new Error('The AI service is experiencing high traffic. Please wait a moment and try again.');
+        }
         throw new Error(data.error || 'Failed to get AI response');
+      }
+      
+      // Check if error is in the response data (for 500 errors with error messages)
+      if (data.error && data.error.includes('Rate limit exceeded')) {
+        throw new Error('The AI service is experiencing high traffic. Please wait a moment and try again.');
       }
 
       // Handle different response formats from different edge functions
