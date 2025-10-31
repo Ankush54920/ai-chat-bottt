@@ -261,11 +261,12 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
   // Unified function to save conversation to database
   const saveConversationToDatabase = async (conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<boolean> => {
     try {
-      // Ensure all text fields are properly cleaned and stringified
-      const cleanedPrompt = cleanTextForDatabase(String(conversation.prompt || ""));
-      const cleanedReply = cleanTextForDatabase(String(conversation.reply || ""));
-      const cleanedUserName = cleanTextForDatabase(String(conversation.user_name || "Anonymous"));
-      const cleanedAiUsed = cleanTextForDatabase(String(conversation.ai_used || "Unknown"));
+      // Data is already cleaned from handleSendMessage - DO NOT clean again!
+      // Double-cleaning was stripping emojis from Fun Mode responses
+      const cleanedPrompt = String(conversation.prompt || "");
+      const cleanedReply = String(conversation.reply || ""); // Keep raw for Fun Mode emojis
+      const cleanedUserName = String(conversation.user_name || "Anonymous");
+      const cleanedAiUsed = String(conversation.ai_used || "Unknown");
 
       // Prepare the insert payload with thoroughly cleaned data
       const insertPayload = {
@@ -329,17 +330,11 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
     }
   };
 
-  // Function to clean text for database storage (but PRESERVE emojis for Fun Mode)
-  const cleanTextForDatabase = (text: string, preserveEmojis: boolean = false): string => {
+  // Function to clean text for database storage (remove emojis/special chars for non-Fun modes)
+  const cleanTextForDatabase = (text: string): string => {
     if (!text) return '';
     
-    if (preserveEmojis) {
-      // For Fun Mode, preserve everything (UTF-8 emojis, line breaks, markdown)
-      // Store raw UTF-8 string without any modifications
-      return text;
-    }
-    
-    // For other modes, remove emojis and special characters
+    // Remove emojis and special characters that might cause database issues
     const cleaned = text
       .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
       .replace(/^\s+|\s+$/g, '') // Trim whitespace
@@ -366,8 +361,8 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
     setIsLoading(true);
     
     try {
-      // Clean the message text for database storage (preserve emojis for Fun Mode)
-      const cleanedMessageText = cleanTextForDatabase(messageText, selectedMode === "Fun Mode");
+      // Clean the user message (but Fun Mode keeps emojis in AI responses, not user prompts)
+      const cleanedMessageText = cleanTextForDatabase(messageText);
       
       const apiEndpoint = getAPIEndpoint(selectedMode);
       const systemPrompt = getSystemPrompt(selectedMode);
@@ -445,7 +440,9 @@ REMEMBER: Keep responses lightweight, fun, and perfectly formatted for mobile sc
         user_name: userName,
         ai_used: selectedMode,
         prompt: cleanedMessageText, // Use cleaned text for database
-        reply: cleanTextForDatabase(aiResponse, selectedMode === "Fun Mode"), // Preserve emojis for Fun Mode
+        // For Fun Mode: Store RAW response with emojis (no cleaning!)
+        // For other modes: Clean to remove special characters
+        reply: selectedMode === "Fun Mode" ? aiResponse : cleanTextForDatabase(aiResponse),
         inputtokencount: Number(data.inputTokenCount || data.InputTokenCount || 0),
         outputtokencount: Number(data.outputTokenCount || data.OutputTokenCount || 0),
         totaltokencount: Number(data.totalTokenCount || data.TotalTokenCount || 0) || 
